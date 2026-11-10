@@ -351,13 +351,16 @@ function showTourStep(index) {
   const next = tourDialog.querySelector('[data-action="next-tour"]');
   next.textContent = index === tourSteps.length - 1 ? "Finish tour" : "Next";
   if (!tourDialog.open) tourDialog.showModal();
-  next.focus();
+  next.focus({ preventScroll: true });
+  if (index > 0) $("#content").scrollIntoView({ block: "start", behavior: "instant" });
+  else window.scrollTo({ top: 0, behavior: "instant" });
 }
 tourDialog.addEventListener("close", () => {
   if (!onlineWallet && state) {
     page = "Home";
     render();
-    $('[data-action="start-tour"]').focus();
+    window.scrollTo({ top: 0, behavior: "instant" });
+    $('[data-action="start-tour"]').focus({ preventScroll: true });
   }
 });
 $(".preview-tabs").addEventListener("keydown", event => {

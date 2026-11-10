@@ -1079,10 +1079,13 @@ textarea {
 #preview-banner:not([hidden]) { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem; margin-bottom: 1rem; }
 #preview-banner h2, #preview-banner p { margin: .25rem 0; }
 #preview-tutorial { flex: 1 0 100%; border-top: 1px solid var(--line); padding-top: .75rem; }
-.preview-tabs { display: flex; flex-wrap: wrap; gap: .35rem; }
-.preview-tabs button { background: transparent; color: inherit; border: 1px solid transparent; border-radius: .65rem; padding: .55rem .75rem; font: inherit; font-weight: 650; cursor: pointer; }
+.preview-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr)); gap: .5rem; }
+.preview-tabs button { min-width: 0; min-height: 44px; background: #f4f7f4; color: inherit; border: 1px solid transparent; border-radius: .65rem; padding: .5rem .65rem; font: inherit; font-weight: 650; cursor: pointer; }
 .preview-tabs button:hover { background: #edf4ef; }
 .preview-tabs button[aria-selected="true"] { background: #214e43; color: #fff; }
+.preview-tabs button:focus-visible { outline: 2px solid #214e43; outline-offset: 2px; }
+.preview-cta { display: flex; flex-wrap: wrap; gap: .5rem; }
+.preview-cta button, .tour-actions button { min-height: 44px; }
 #preview-banner #preview-tip { margin: .6rem 0 0; }
 #wallet-tour {
   width: min(32rem, calc(100% - 2rem));
@@ -1100,6 +1103,14 @@ textarea {
 #tour-controls dt { font-weight: 700; color: #214e43; }
 #tour-controls dd { margin: .15rem 0 0; }
 .tour-actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; margin-top: 1.25rem; }
+@media (max-width: 560px) {
+  .preview-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .45rem; }
+  .preview-tabs button { padding-inline: .25rem; font-size: .85rem; }
+  .preview-cta { width: 100%; }
+  .preview-cta button { flex: 1 1 auto; }
+  #wallet-tour { inset: auto .75rem max(.75rem, env(safe-area-inset-bottom)) .75rem; width: auto; max-height: 52dvh; }
+  .tour-actions button { flex: 1 1 auto; }
+}
 .tutorial-steps { display: grid; gap: .65rem 1.6rem; padding-inline-start: 1.4rem; line-height: 1.5; }
 #content { scroll-margin-top: 1rem; }
 @media (max-width: 850px) { #preview-auth:not([hidden]) { display: none; } }
