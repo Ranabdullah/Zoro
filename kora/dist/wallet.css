@@ -1084,8 +1084,15 @@ textarea {
 .preview-tabs button:hover { background: #edf4ef; }
 .preview-tabs button[aria-selected="true"] { background: #214e43; color: #fff; }
 #preview-banner #preview-tip { margin: .6rem 0 0; }
-#wallet-tour { width: min(32rem, calc(100% - 2rem)); padding: clamp(1rem, 4vw, 1.75rem); }
-#wallet-tour::backdrop { background: #142c27a0; backdrop-filter: blur(5px); }
+#wallet-tour {
+  width: min(32rem, calc(100% - 2rem));
+  max-height: min(60dvh, calc(100% - 2rem));
+  inset: auto 1rem max(1rem, env(safe-area-inset-bottom)) auto;
+  margin: 0;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  overflow: auto;
+}
+#wallet-tour::backdrop { background: #142c2726; backdrop-filter: blur(1px); }
 .tour-progress { color: #456b5f; font-size: .85rem; font-weight: 700; }
 #wallet-tour h2 { margin: .4rem 0; }
 #tour-description { line-height: 1.55; }
