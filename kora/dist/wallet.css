@@ -1078,4 +1078,9 @@ textarea {
 #preview-auth:not([hidden]) { display: grid; gap: .5rem; margin-top: 1rem; }
 #preview-banner:not([hidden]) { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem; margin-bottom: 1rem; }
 #preview-banner h2, #preview-banner p { margin: .25rem 0; }
+#preview-tutorial { flex: 1 0 100%; border-top: 1px solid var(--line); padding-top: .75rem; }
+#preview-tutorial summary { cursor: pointer; font-weight: 700; }
+.tutorial-steps { display: grid; gap: .65rem 1.6rem; padding-inline-start: 1.4rem; line-height: 1.5; }
+#preview-tutorial .tutorial-steps { grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); }
+#content { scroll-margin-top: 1rem; }
 @media (max-width: 850px) { #preview-auth:not([hidden]) { display: none; } }

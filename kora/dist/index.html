@@ -53,9 +53,24 @@
       </header>
       <section id="preview-banner" class="panel" hidden>
         <div><h2>Explore the sample wallet</h2><p>These example accounts and transactions are just for the demo. Your own wallet starts empty.</p></div>
-        <div class="preview-cta"><button class="primary" data-action="register">Create an account</button> <button class="secondary" data-action="login">Sign in</button> <button class="secondary" data-action="help">Open tutorial</button></div>
+        <div class="preview-cta">
+          <button class="primary" data-action="register">Create an account</button>
+          <button class="secondary" data-action="login">Sign in</button>
+        </div>
+        <details id="preview-tutorial" open>
+          <summary>How Kora works</summary>
+          <ol class="tutorial-steps">
+            <li><strong>Explore the dashboard.</strong> See what you have, what came in and what you spent this month. Foreign currency totals are estimated in euros.</li>
+            <li><strong>Try an account.</strong> Open a sample card to see its balance and activity. In Accounts, you can add a bank account, card or cash balance in its own currency.</li>
+            <li><strong>Record spending or income.</strong> Choose Add expense or Money in, select an account and enter an amount. Watch its balance update, then review the entry in Activity.</li>
+            <li><strong>Save a receipt.</strong> Open Receipts to attach a photo and a note. Use a sample image while exploring.</li>
+            <li><strong>Track debts.</strong> Open Debts to record money you owe or money someone owes you and mark it settled when paid.</li>
+            <li><strong>Start your own wallet.</strong> If you like Kora, choose Create an account, confirm your email and set up an authenticator. Your wallet starts empty. You can replay this guide in Settings → Help.</li>
+          </ol>
+          <a class="link" href="#content">Try the sample wallet ↓</a>
+        </details>
       </section>
-      <div id="content"></div>
+      <div id="content" tabindex="-1"></div>
       <footer>
         Made for your life, wherever it takes you.<span
           >Manual tracking · No bank connection</span

@@ -736,11 +736,8 @@ function settingsDialog(title, html) {
 }
 function showTutorial(first = false) {
   settingsDialog(first ? "Welcome to Kora" : "Wallet tutorial",
-    '<ol><li><strong>Add an account.</strong> Choose a currency and enter the balance you have today.</li>' +
-    '<li><strong>Log spending or income.</strong> Select the account used and enter the amount.</li>' +
-    '<li><strong>Keep a receipt.</strong> Add a photo from your phone or computer.</li>' +
-    '<li><strong>Open Kora on another device.</strong> Use the same email, password and authenticator.</li></ol>' +
-    '<p>Find this again in Settings → Help.</p><button class="primary" data-action="close-help">Got it</button>');
+    $(".tutorial-steps").outerHTML +
+    '<button class="primary" data-action="close-help">Got it</button>');
 }
 function showPasswordForm() {
   settingsDialog("Change password", '<form id="password-form">' +
@@ -1105,8 +1102,6 @@ async function init() {
   } else {
     showDemo();
   }
-  if (!person && state && new URLSearchParams(location.search).get("tutorial") === "1")
-    showTutorial();
   rates();
 }
 document.addEventListener("visibilitychange", () => {
