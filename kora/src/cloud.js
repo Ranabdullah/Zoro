@@ -19,12 +19,23 @@ export async function session() {
   user = data.session?.user || null;
   return user;
 }
-export async function google() {
-  const { error } = await client.auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo: location.origin + "/" },
+export async function register(email, password) {
+  const { data, error } = await client.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: location.origin + "/" },
   });
-  if (error) throw error;
+  if (error) {
+    if (error.code === "weak_password")
+      throw Error("Choose a stronger password and try again.");
+    if (error.status === 429)
+      throw Error("Too many attempts. Please wait before trying again.");
+    throw Error("Could not send a confirmation email. Check the address or contact the app owner.");
+  }
+  if (data.session) {
+    await logout();
+    throw Error("Email verification must be enabled by the app owner.");
+  }
 }
 export async function login(email, password) {
   const { data, error } = await client.auth.signInWithPassword({

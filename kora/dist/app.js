@@ -881,7 +881,6 @@ document.addEventListener("click", async (event) => {
       loginScreen();
       await cloud.logout();
     }
-    if (action === "google") await cloud.google();
   } catch (error) {
     toast(error.message);
   }
@@ -914,24 +913,52 @@ document.addEventListener("input", (e) => {
     );
   }
 });
-function loginScreen() {
+function loginScreen(registering = false) {
   document.querySelector("nav").innerHTML = "";
   $("#privacy").hidden = true;
   $(".demo").textContent = "● Private money space";
+  const title = registering ? "Create your Kora account" : "Sign in to Kora";
+  const passwordOptions = registering
+    ? 'required minlength="12" maxlength="72" autocomplete="new-password"'
+    : 'required autocomplete="current-password"';
   $("#content").innerHTML =
-    `<div class="login-wrap"><div class="eyebrow">YOUR LIFE. YOUR MONEY. YOUR SPACE.</div><h1>A little closer<br>to everything that matters.</h1><p>From your everyday euro account to money back home.<br>One simple, personal place.</p><div class="panel login-panel"><h2>Welcome to Kora</h2><p>Sign in to see your money on any device.</p><button class="secondary" data-action="google">Continue with Google ↗</button><div class="login-divider">or sign in with email</div><form id="login-form">${field("Email address", "email", "email", 'required autocomplete="username"')}${field("Password", "password", "password", 'required autocomplete="current-password"')}<p id="login-error" role="alert"></p><button class="primary submit">Sign in</button></form><small>Access is by invitation. Ask the app owner to enable your email.</small></div></div>`;
+    '<div class="login-wrap"><h1>Your private wallet</h1><div class="panel login-panel"><h2>' + title +
+    '</h2><p>Use your invited email address.</p><form id="login-form">' +
+    field("Email address", "email", "email", 'required autocomplete="username"') +
+    field("Password", "password", "password", passwordOptions) +
+    (registering ? '<small>Use at least 12 characters.</small>' : '') +
+    '<p id="login-error" role="alert"></p><p id="login-status" role="status"></p><button class="primary submit">' +
+    (registering ? 'Create account' : 'Sign in') +
+    '</button></form><button id="auth-mode" class="secondary" type="button">' +
+    (registering ? 'Back to sign in' : 'Create an account') + '</button></div></div>';
+  $("#auth-mode").onclick = () => loginScreen(!registering);
   $("#login-form").onsubmit = async (e) => {
     e.preventDefault();
-    const button = e.target.querySelector("button");
-    button.disabled = true;
+    const form = e.currentTarget;
+    const button = form.querySelector("button");
+    const mode = $("#auth-mode");
+    button.disabled = mode.disabled = true;
+    $("#login-error").textContent = "";
+    $("#login-status").textContent = "";
     try {
-      const data = new FormData(e.target);
-      person = await cloud.login(data.get("email"), data.get("password"));
-      await refresh();
+      const data = new FormData(form);
+      const email = data.get("email").trim();
+      const password = data.get("password");
+      if (registering) {
+        if (new TextEncoder().encode(password).length > 72)
+          throw Error("Use a shorter password and try again.");
+        await cloud.register(email, password);
+        form.reset();
+        $("#login-status").textContent =
+          "Check your email for a confirmation link. After confirming, return here to sign in.";
+      } else {
+        person = await cloud.login(email, password);
+        await refresh();
+      }
     } catch (error) {
       $("#login-error").textContent = error.message;
     } finally {
-      button.disabled = false;
+      button.disabled = mode.disabled = false;
     }
   };
 }

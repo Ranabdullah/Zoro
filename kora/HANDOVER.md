@@ -2,9 +2,9 @@
 
 ## The agreed setup
 
-You maintain the source in your GitHub repository. Cloudflare serves the app. A single Supabase project handles Google login, private records and receipt photos. He opens the same HTTPS link on his phone or PC and uses the same Google account. He does **not** need a Supabase developer account to use Kora.
+You maintain the source in your GitHub repository. Cloudflare serves the app. A single Supabase project handles email and password sign-in, private records and receipt photos. He opens the same HTTPS link on his phone or PC and uses the same email and password. He does **not** need a Supabase developer account to use Kora.
 
-Start with hosting and Supabase in your accounts if you prefer. A later transfer to accounts he owns is an administrative task; changing his Google login is not a backend transfer. This version has no user-facing backend settings, and no automatic project/data migration.
+Start with hosting and Supabase in your accounts if you prefer. A later transfer to accounts he owns is an administrative task; changing his email and password sign-in is not a backend transfer. This version has no user-facing backend settings, and no automatic project/data migration.
 
 ## 1. Put the source on GitHub
 
@@ -16,25 +16,20 @@ Do not upload `node_modules`, `.openai`, `.env` files, actual receipts, exports,
 
 1. Create a new Supabase project in your account. Choose a suitable region and a strong database password; retain it in your password manager.
 2. In SQL Editor, run `supabase/schema.sql` **once on a new project**. It creates the private vault, invitation allowlist, controlled save function, and private receipt bucket.
-3. Open `supabase/invite.sql`, replace the example with his actual Google email and run that statement privately. Do not commit the real email. Add your test email separately if you need a test account; each user receives separate records.
+3. Open `supabase/invite.sql`, replace the example with his actual email address and run that statement privately. Do not commit the real email. Add your test email separately if you need a test account; each user receives separate records.
 4. In Supabase API settings, obtain the project URL (`https://PROJECT.supabase.co`) and **publishable** key (`sb_publishable_...`). These two values configure the browser. They are not privileged secrets. The build refuses service-role/secret keys.
-5. Never put the database password, Supabase service-role/secret key, or Google client secret in the source, browser configuration, GitHub or a chat.
+5. Never put the database password, Supabase service-role/secret key, or SMTP password in the source, browser configuration, GitHub or a chat.
 
-Access is enforced in the database, not by hiding buttons. Only verified, invited users can read or save their own vault and their own receipt folder. An uninvited Google account may create an authentication identity, but cannot access app records. There are no anonymous table read/write grants. Receipt buckets must remain private.
+Access is enforced in the database, not by hiding buttons. Only verified, invited users can read or save their own vault and their own receipt folder. An uninvited email address may create an authentication identity, but cannot access app records. There are no anonymous table read/write grants. Receipt buckets must remain private.
 
-## 3. Enable Google sign-in
+## 3. Enable verified email and password sign-in
 
-Follow [Supabase's Google sign-in instructions](https://supabase.com/docs/guides/auth/social-sign-in/auth-google).
+1. In Supabase Authentication, enable the Email provider, email signups, and **Confirm email**. Set the minimum password length to at least 12.
+2. Configure [custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) in Supabase using a verified sender. The built-in mailer only sends to project team members. Enter mail credentials directly in Supabase.
+3. Set the final HTTPS app origin as the Site URL and allow the exact app callback URL ending in a slash. For local development, separately allow http://127.0.0.1:4173/.
+4. Add the intended user's email to the private allowlist using Step 2. The user chooses their own password in Kora and confirms ownership through the email link. Do not share or store their password.
 
-1. Create a Google OAuth web client and configure its consent screen.
-2. Set its authorized redirect URI to the callback URL shown in Supabase's Google provider settings, normally `https://PROJECT.supabase.co/auth/v1/callback`.
-3. Enter the Google client ID and secret **in Supabase's provider settings only** and enable Google.
-4. Configure consent-screen test users if the Google application is in testing mode. His email must be included while that mode applies.
-5. In Supabase Auth URL Configuration, set the final HTTPS app origin as the Site URL and add the exact app callback URL ending `/` to the allowed redirects. For local development, separately allow `http://127.0.0.1:4173/`.
-
-Kora uses the SDK's PKCE flow and sessionStorage. Sessions survive refreshes in the current tab, but closing the tab/browser may require signing in again. Passwords are not stored by Kora. Google users use Google's own account protection; enable two-step verification on the Google account. A short visible backend PIN is not used as an authentication mechanism.
-
-The email/password fallback is for already-provisioned, confirmed users. There is no public email signup or password-reset screen in this version. Use Google for the simple primary experience; do not give him an administrator's password. SMS/phone login is not implemented.
+Kora uses the Supabase SDK with PKCE and stores its session in the current tab. Opening a confirmation link elsewhere may require returning to the app and signing in manually. Keep email confirmation enabled. The app has no self-service password reset screen yet.
 
 ## 4. Host with Cloudflare Pages when ready
 
@@ -55,7 +50,7 @@ Reference: [Cloudflare Pages build configuration](https://developers.cloudflare.
 
 ## 5. Verify before real use
 
-- Open on PC, sign in with an invited Google account, add an account with €100 and record a €12.34 expense. The balance must be €87.66.
+- Open on PC, sign in with an invited email address, add an account with €100 and record a €12.34 expense. The balance must be €87.66.
 - Sign in with the same account on the phone. Check the balance and receipt photo. Updates refresh when the tab becomes visible or within 30 seconds; Settings also has Refresh.
 - Add a second account using NGN/KES/GHS/etc. Its expense must affect only that account. Check the original amount, euro estimate and source rate date.
 - Sign in with a separate invited test identity. It must start empty and must not access the first user's vault or receipt paths, even via direct API requests.
@@ -82,7 +77,7 @@ Configure the following once in the GitHub repository's `production` environment
 | `CF_PAGES_PROJECT`         | Variable (existing Pages project name)                          |
 | `CLOUDFLARE_API_TOKEN`     | Secret (restricted to Pages deployment in the intended account) |
 
-Use either this manual workflow or Cloudflare's automatic Git builds as your primary publishing route. The first setup still needs provider sign-in, an approved Supabase project, its database schema, invited email, and Google OAuth configuration. There is no honest one-click way to skip the account owner approving those connections.
+Use either this manual workflow or Cloudflare's automatic Git builds as your primary publishing route. The first setup still needs provider sign-in, an approved Supabase project, its database schema, invited email, and verified email delivery. There is no honest one-click way to skip the account owner approving those connections.
 
 Keep the parent repository structure when uploading: `.github/` at the top, app code under `kora/`. The workflows use `kora` as their working directory.
 
@@ -103,10 +98,10 @@ Tap a stacked card or the matching account row to open its details. The view sho
 
 ## His daily instructions
 
-1. Open your Kora link and choose **Continue with Google**.
+1. Open your Kora link and choose **Create an account**. Confirm your email, then sign in.
 2. Add each account once: a name, provider, currency and current balance. Ireland is EUR; your other accounts keep their own currencies.
 3. After shopping, choose **Add expense**, enter the shop and amount, and select the account used. A photo or note is optional.
 4. Use **Accounts → Add money received** for income. Recording an entry does not move actual money.
-5. Open the same link and sign in with the same Google account on your other device.
+5. Open the same link and sign in with the same email and password on your other device.
 
 Only give him the app link and these daily instructions. Developer accounts and backend settings stay out of his everyday flow.
