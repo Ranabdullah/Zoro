@@ -1,0 +1,40 @@
+name: Publish Kora
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kora-production
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: kora
+    env:
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CF_PAGES_PROJECT: ${{ vars.CF_PAGES_PROJECT }}
+      CF_PAGES: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kora/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Publish authenticated app
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing Cloudflare deployment secret'; exit 1; }
+          [[ "$CLOUDFLARE_ACCOUNT_ID" =~ ^[a-f0-9]{32}$ ]] || { echo 'Invalid account ID'; exit 1; }
+          [[ "$CF_PAGES_PROJECT" =~ ^[a-z0-9][a-z0-9-]{0,57}$ ]] || { echo 'Invalid Pages project name'; exit 1; }
+          npx --yes wrangler@4.160.0 pages deploy dist --project-name "$CF_PAGES_PROJECT" --branch main

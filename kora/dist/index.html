@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#214e43" />
+    <title>Kora · Your personal money space</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="wallet.css" />
+  </head>
+  <body>
+    <aside>
+      <a class="brand" href="#"
+        ><span>✳</span> kora<span class="brand-dot">.</span></a
+      >
+      <div class="space-label">YOUR PERSONAL SPACE</div>
+      <nav></nav>
+      <div class="sidebar-bottom">
+        <div class="small-art">◒</div>
+        <h3>Life here.<br />Roots everywhere.</h3>
+        <p>From Ireland to back home.</p>
+        <button class="text-button" data-action="settings">
+          Make it yours ↗
+        </button>
+      </div>
+      <button class="profile" data-action="settings">
+        <span class="avatar">K</span
+        ><span>My personal space<small>Make yourself at home</small></span
+        ><span>⌄</span>
+      </button>
+    </aside>
+    <main>
+      <header>
+        <div class="breadcrumb">
+          My space <span>/</span> <b id="crumb">Home</b>
+        </div>
+        <div class="header-right">
+          <span class="demo">● Preview · sample data</span
+          ><button class="icon-btn" id="privacy" aria-label="Hide balances">
+            ◉</button
+          ><button
+            class="icon-btn"
+            data-action="settings"
+            aria-label="Settings"
+          >
+            ⚙
+          </button>
+        </div>
+      </header>
+      <div id="content"></div>
+      <footer>
+        Made for your life, wherever it takes you.<span
+          >Manual tracking · No bank connection</span
+        >
+      </footer>
+    </main>
+    <dialog id="modal">
+      <form id="form">
+        <div class="modal-head">
+          <h2 id="modal-title"></h2>
+          <button type="button" class="icon-btn" id="close" aria-label="Close">
+            ×
+          </button>
+        </div>
+        <div id="fields"></div>
+        <p id="form-error" role="alert"></p>
+        <button class="primary submit" type="submit">Save</button>
+      </form>
+    </dialog>
+    <dialog id="account-dialog" aria-labelledby="account-dialog-title">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">YOUR PERSONAL WALLET</div>
+          <h2 id="account-dialog-title">Account details</h2>
+        </div>
+        <button
+          type="button"
+          class="icon-btn"
+          data-close-account
+          aria-label="Close account details"
+        >
+          ×
+        </button>
+      </div>
+      <div id="account-detail"></div>
+    </dialog>
+    <div id="toast" role="status"></div>
+    <script src="config.js"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
