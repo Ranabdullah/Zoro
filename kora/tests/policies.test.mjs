@@ -23,7 +23,8 @@ test("private vault and receipt policies enforce owner access and save revisions
     create schema auth;create schema storage;
     create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
     create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
-    create function auth.jwt() returns jsonb language sql stable as $$select jsonb_build_object('aal',current_setting('request.jwt.claim.aal',true))$$;
+    create function auth.jwt() returns jsonb language sql stable as $$select jsonb_build_object('aal',current_setting('request.jwt.claim.aal',true),'session_id',current_setting('request.jwt.claim.session_id',true))$$;
+    create table auth.sessions(id uuid primary key,user_id uuid,created_at timestamptz default now(),refreshed_at timestamptz,user_agent text,not_after timestamptz,aal text default 'aal2');
     create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
     create table storage.objects(id bigint generated always as identity primary key,bucket_id text,name text);
     alter table storage.objects enable row level security;
@@ -36,6 +37,7 @@ test("private vault and receipt policies enforce owner access and save revisions
     await readFile(new URL("../supabase/schema.sql", import.meta.url), "utf8"),
   );
   await db.exec(await readFile(new URL("../supabase/access-hardening.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/session-security.sql", import.meta.url), "utf8"));
   for (const [id, email, verified] of [
     [alice, "alice@example.invalid", true],
     [bob, "bob@example.invalid", true],
@@ -51,6 +53,7 @@ test("private vault and receipt policies enforce owner access and save revisions
       await db.query("insert into kora_private.allowed_emails values($1)", [
         email,
       ]);
+    await db.query("insert into auth.sessions(id,user_id,user_agent) values($1,$1,$2)", [id, "Test browser"]);
   }
   const acting = async (role, id, fn, aal = "aal2") => {
     await db.exec("set role " + role);
@@ -58,6 +61,7 @@ test("private vault and receipt policies enforce owner access and save revisions
       id || "",
     ]);
     await db.query("select set_config('request.jwt.claim.aal',$1,false)", [aal]);
+    await db.query("select set_config('request.jwt.claim.session_id',$1,false)", [id || ""]);
     try {
       return await fn();
     } finally {
@@ -70,6 +74,24 @@ test("private vault and receipt policies enforce owner access and save revisions
       JSON.stringify(vault),
     ]);
   try {
+    await t.test("verified users only see their own sessions, and revoked sessions lose wallet access", async () => {
+      const id = "55555555-5555-4555-8555-555555555555";
+      await db.query("insert into auth.sessions(id,user_id,user_agent) values($1,$2,$3)", [id, alice, "Other browser"]);
+      await acting("authenticated", alice, async () => {
+        const { rows } = await db.query("select * from public.kora_sessions()");
+        assert.equal(rows.length, 2);
+        assert.equal(rows.filter(row => row.is_current).length, 1);
+        await db.query("select set_config('request.jwt.claim.session_id',$1,false)", [bob]);
+        await assert.rejects(() => save(0), /Access denied/);
+        await db.query("select set_config('request.jwt.claim.session_id',$1,false)", [id]);
+        assert.equal((await db.query("select public.kora_allowed() as allowed")).rows[0].allowed, true);
+      });
+      await db.query("delete from auth.sessions where id=$1", [id]);
+      await acting("authenticated", alice, async () => {
+        await db.query("select set_config('request.jwt.claim.session_id',$1,false)", [id]);
+        await assert.rejects(() => save(0), /Access denied/);
+      });
+    });
     await t.test("signup hook rejects strangers and is callable only by Auth", async () => {
       const hook = email => db.query("select public.kora_before_signup($1) as result", [JSON.stringify({user:{email}})]);
       await acting("supabase_auth_admin", null, async () => {

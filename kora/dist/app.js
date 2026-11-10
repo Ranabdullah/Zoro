@@ -379,7 +379,7 @@ function render() {
   if (page === "Settings")
     html =
       heading("Make yourself at home.", "A few simple preferences.") +
-      `<div class="panel settings-box"><h2>Your personal space</h2><p>${cloud.configured ? "Signed in as " + esc(person?.email) + ". Records save online and refresh across your devices." : "This is a local design preview. Sample records save only in this browser. Google login and online storage need the one-time setup in HANDOVER.md."}</p><button class="secondary" data-action="refresh">Refresh my records</button> <button class="secondary" data-action="export">Download my records</button>${cloud.configured ? ' <button class="secondary" data-action="logout">Sign out</button>' : ""}<hr><h2>Private by design</h2><p>Use account nicknames and optional last four digits only. Never enter your PIN, CVV, password, or full card number. Receipts can contain personal information: check them before uploading.</p><h2>Exchange rates</h2><p>Euro amounts use the latest available Frankfurter reference rates. Rates can be delayed; each foreign account shows its rate date. These are estimates, excluding fees. Original balances never change with exchange rates.</p><h2>Need to correct a purchase?</h2><p>Delete it from Activity and add it again. Your account balance updates automatically.</p></div>`;
+      `<div class="panel settings-box"><h2>Your personal space</h2><p>${cloud.configured ? "Signed in as " + esc(person?.email) + ". Records save online and refresh across your devices." : "This is a local design preview. Sample records save only in this browser. Online sign-in and storage need the one-time setup in HANDOVER.md."}</p><button class="secondary" data-action="refresh">Refresh my records</button> <button class="secondary" data-action="export">Download my records</button>${cloud.configured ? ' <button class="secondary" data-action="logout">Sign out</button>' : ""}<hr><h2>Help</h2><button class="secondary" data-action="help">Open wallet tutorial</button>${cloud.configured ? '<hr><h2>Account security</h2><p>New browser sessions require your password and authenticator code.</p><button class="secondary" data-action="password">Change password</button> <button class="secondary" data-action="sessions">Signed-in browsers</button>' : ""}<hr><h2>Private by design</h2><p>Use account nicknames and optional last four digits only. Never enter your PIN, CVV, password, or full card number. Receipts can contain personal information: check them before uploading.</p><h2>Exchange rates</h2><p>Euro amounts use the latest available Frankfurter reference rates. Rates can be delayed; each foreign account shows its rate date. These are estimates, excluding fees. Original balances never change with exchange rates.</p><h2>Need to correct a purchase?</h2><p>Delete it from Activity and add it again. Your account balance updates automatically.</p></div>`;
   $("#content").innerHTML = html;
   if (page === "Receipts") loadReceiptImages();
 }
@@ -733,15 +733,89 @@ async function loadReceiptImages() {
     }
   }
 }
+function settingsDialog(title, html) {
+  $("#settings-dialog-title").textContent = title;
+  $("#settings-dialog-content").innerHTML = html;
+  if (!$("#settings-dialog").open) $("#settings-dialog").showModal();
+}
+function showTutorial(first = false) {
+  settingsDialog(first ? "Welcome to Kora" : "Wallet tutorial",
+    '<ol><li><strong>Add an account.</strong> Choose a currency and enter the balance you have today.</li>' +
+    '<li><strong>Log spending or income.</strong> Select the account used and enter the amount.</li>' +
+    '<li><strong>Keep a receipt.</strong> Add a photo from your phone or computer.</li>' +
+    '<li><strong>Open Kora on another device.</strong> Use the same email, password and authenticator.</li></ol>' +
+    '<p>Find this again in Settings → Help.</p><button class="primary" data-action="close-help">Got it</button>');
+}
+function showPasswordForm() {
+  settingsDialog("Change password", '<form id="password-form">' +
+    field("Current password", "current-password", "password", 'required autocomplete="current-password"') +
+    field("New password", "new-password", "password", 'required minlength="12" maxlength="72" autocomplete="new-password"') +
+    field("Confirm new password", "confirm-password", "password", 'required autocomplete="new-password"') +
+    '<p role="alert" id="password-error"></p><button class="primary submit">Save password</button></form>');
+  $("#password-form").onsubmit = async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submit = form.querySelector("button");
+    const values = new FormData(form);
+    const password = values.get("new-password");
+    submit.disabled = true;
+    try {
+      if (password !== values.get("confirm-password")) throw Error("The new passwords do not match.");
+      if (new TextEncoder().encode(password).length > 72) throw Error("Choose a shorter password.");
+      await cloud.changePassword(values.get("current-password"), password);
+      form.reset();
+      $("#settings-dialog").close();
+      toast("Password changed.");
+    } catch (error) {
+      $("#password-error").textContent = error.message;
+    } finally {
+      submit.disabled = false;
+    }
+  };
+}
+function browserLabel(agent = "") {
+  const platform = agent.match(/iPhone|iPad|Android|Windows|Macintosh|Linux/i)?.[0] || "Unknown device";
+  const browser = /Edg\//.test(agent) ? "Edge" : /Firefox|FxiOS/.test(agent) ? "Firefox"
+    : /Chrome|CriOS/.test(agent) ? "Chrome" : /Safari/.test(agent) ? "Safari" : "Browser";
+  return browser + " · " + platform;
+}
+let newestOtherSession = null;
+async function checkNewSignIns(userId) {
+  const sessions = await cloud.signedInSessions();
+  if (person?.id !== userId || !state) return;
+  const newest = sessions.find(item => !item.is_current);
+  const timestamp = newest ? Date.parse(newest.started_at) : 0;
+  if (newest && newestOtherSession !== null && timestamp > newestOtherSession)
+    toast("New sign-in on " + browserLabel(newest.browser_agent || "") + ". Review it in Settings → Signed-in browsers.");
+  newestOtherSession = Math.max(newestOtherSession || 0, timestamp);
+}
+async function showSessions() {
+  const sessions = await cloud.signedInSessions();
+  const rows = sessions.map(item => "<li><strong>" + esc(browserLabel(item.browser_agent || "")) +
+    (item.is_current ? " (this browser)" : "") + "</strong><br>Signed in " +
+    esc(new Date(item.started_at).toLocaleString()) + "</li>").join("");
+  settingsDialog("Signed-in browsers", "<ul>" + rows + "</ul>" +
+    '<p>Review browsers that completed authenticator verification.</p>' +
+    '<button class="secondary" data-action="logout-others">Sign out all other browsers</button>');
+}
 async function refresh() {
   if (cloud.configured) {
     const signedInId = person?.id;
     if (!signedInId) return;
-    const loaded = (await cloud.load()) || { ...emptyState(), __revision: 0 };
+    const record = await cloud.load();
+    const loaded = record || { ...emptyState(), __revision: 0 };
     if (person?.id !== signedInId) return;
     if (!state || (loaded.__revision || 0) >= (state.__revision || 0))
       state = loaded;
     state.currency = "EUR";
+    render();
+    checkNewSignIns(signedInId).catch(() => {});
+    const tutorialKey = "kora-tutorial:" + signedInId;
+    if (!record && !localStorage.getItem(tutorialKey)) {
+      localStorage.setItem(tutorialKey, "seen");
+      showTutorial(true);
+    }
+    return;
   }
   render();
 }
@@ -871,7 +945,18 @@ document.addEventListener("click", async (event) => {
         "Downloaded records. Keep this private. Receipt photos are not included in online exports.",
       );
     }
+    if (action === "help") showTutorial();
+    if (action === "close-help") $("#settings-dialog").close();
+    if (action === "password" && person && state) showPasswordForm();
+    if (action === "sessions" && person && state) await showSessions();
+    if (action === "logout-others" && person && state) {
+      if (!confirm("Sign out every other signed-in browser?")) return;
+      await cloud.signOutOthers();
+      await showSessions();
+      toast("Other sessions signed out.");
+    }
     if (action === "logout") {
+      newestOtherSession = null;
       $("#account-dialog").close();
       $("#account-detail").innerHTML = "";
       state = null;

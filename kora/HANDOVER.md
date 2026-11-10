@@ -113,3 +113,7 @@ Tap a stacked card or the matching account row to open its details. The view sho
 5. Open the same link and sign in with the same email and password on your other device.
 
 Only give him the app link and these daily instructions. Developer accounts and backend settings stay out of his everyday flow.
+
+## Session settings
+
+Apply `supabase/session-security.sql` after the invitation and authenticator migration. Settings shows verified browser sessions and lets the owner sign out other browsers. The database checks that a session still exists before it serves wallet or receipt data. A browser that is open and refreshing can show a notice when it detects another verified sign-in.

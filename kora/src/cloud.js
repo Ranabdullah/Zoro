@@ -30,7 +30,7 @@ export async function register(email, password) {
       throw Error("Choose a stronger password and try again.");
     if (error.status === 429)
       throw Error("Too many attempts. Please wait before trying again.");
-    throw Error("Could not send a confirmation email. Check the address or contact the app owner.");
+    throw Error("Registration could not be completed. Ask the app owner to confirm your invitation and email delivery.");
   }
   if (data.session) {
     await logout();
@@ -51,6 +51,25 @@ export async function logout() {
   const { error } = await client.auth.signOut({ scope: "local" });
   if (error) throw error;
   user = null;
+}
+export async function signedInSessions() {
+  const { data, error } = await client.rpc("kora_sessions");
+  if (error) throw Error("Could not load your signed-in sessions.");
+  return data;
+}
+export async function signOutOthers() {
+  const { error } = await client.auth.signOut({ scope: "others" });
+  if (error) throw Error("Could not sign out the other sessions.");
+}
+export async function changePassword(currentPassword, password) {
+  const { error } = await client.auth.updateUser({
+    current_password: currentPassword, password,
+  });
+  if (error) {
+    if (error.code === "reauthentication_needed")
+      throw Error("Sign out and sign in again before changing your password.");
+    throw Error("Could not change the password. Check your current password and choose a different, strong password.");
+  }
 }
 export async function secondFactor() {
   const invited = await client.rpc("kora_invited");
