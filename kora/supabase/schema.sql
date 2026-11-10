@@ -3,6 +3,7 @@ begin;
 create schema if not exists kora_private;
 revoke all on schema kora_private from public, anon, authenticated;
 create table kora_private.allowed_emails(email text primary key check(email=lower(email)));
+alter table kora_private.allowed_emails enable row level security;
 -- Add approved emails with the separate invite.sql example.
 
 create function public.kora_allowed() returns boolean
