@@ -235,6 +235,21 @@ test("private vault and receipt policies enforce owner access and save revisions
           });
       },
     );
+    await t.test("public registration removes invitations while preserving verified owner access", async () => {
+      await db.exec(await readFile(new URL("../supabase/public-registration.sql", import.meta.url), "utf8"));
+      await acting("supabase_auth_admin", null, async () => {
+        const { rows } = await db.query("select public.kora_before_signup($1) as result", [JSON.stringify({user:{email:"new@example.invalid"}})]);
+        assert.deepEqual(rows[0].result, {});
+      });
+      await acting("authenticated", outsider, async () => {
+        assert.equal((await db.query("select * from public.kora_vaults")).rows.length, 0);
+        assert.equal((await save(0)).rows[0].revision, 1);
+        assert.deepEqual((await db.query("select user_id from public.kora_vaults")).rows.map(row => row.user_id), [outsider]);
+        await assert.rejects(() => db.query("insert into storage.objects(bucket_id,name) values('kora-receipts',$1)", [alice + "/forged.jpg"]), /row-level security/);
+      });
+      await acting("authenticated", unverified, () => assert.rejects(() => save(0), /Access denied/));
+      await acting("authenticated", outsider, () => assert.rejects(() => save(1), /Access denied/), "aal1");
+    });
   } finally {
     await db.close();
   }

@@ -31,7 +31,7 @@ const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
-const demoKey = "kora-demo-v1";
+let onlineWallet = false;
 let page = "Home",
   state,
   person = null,
@@ -242,7 +242,7 @@ function accountDetails(id, animate = true) {
   );
   $("#account-dialog-title").textContent = a.name;
   $("#account-detail").innerHTML =
-    `<div class="account-detail-top"><div class="account-hero ${animate ? "card-pop" : ""}">${card(a, { interactive: false })}</div><div class="account-facts"><div class="private-label">◈ ${cloud.configured ? "Only in your signed-in account" : "Local sample preview"}</div><dl><div><dt>Provider</dt><dd>${esc(a.provider)}</dd></div><div><dt>Location</dt><dd>${esc(accountLocation(a))}</dd></div><div><dt>Account type</dt><dd>${esc(a.kind)}</dd></div><div><dt>Card ending</dt><dd id="card-ending">${a.last4 ? '<button class="link" data-reveal-ending>Reveal last 4 digits</button>' : "Not added"}</dd></div></dl></div></div><div class="account-actions"><button class="primary" data-account-expense="${esc(id)}">＋ Add expense</button><button class="secondary" data-account-income="${esc(id)}">＋ Money in</button><button class="secondary" data-edit-account="${esc(id)}">✎ Edit card</button></div><div class="account-stat-grid"><div><small>Starting balance</small><b>${cash(a.opening, a.currency)}</b></div><div><small>Total spent</small><b>${cash(spent, a.currency)}</b></div><div><small>Total received</small><b>${cash(received, a.currency)}</b></div></div><div class="section-heading"><h2>Activity on this account</h2><span class="pill">${entries.length} entries</span></div><div class="account-history">${txRows(entries)}</div>${receipts.length ? `<div class="section-heading"><h2>Receipts for this account</h2></div><div class="account-receipts">${receipts.map((r) => `<button class="secondary" data-view-receipt="${esc(r.id)}">▤ ${esc(r.shop)} · ${esc(r.date)}</button>`).join("")}</div>` : ""}<p class="detail-note">Manually tracked. Recording a purchase changes this balance; it does not move money or connect to your bank.</p>`;
+    `<div class="account-detail-top"><div class="account-hero ${animate ? "card-pop" : ""}">${card(a, { interactive: false })}</div><div class="account-facts"><div class="private-label">◈ ${onlineWallet ? "Only in your signed-in account" : "Local sample preview"}</div><dl><div><dt>Provider</dt><dd>${esc(a.provider)}</dd></div><div><dt>Location</dt><dd>${esc(accountLocation(a))}</dd></div><div><dt>Account type</dt><dd>${esc(a.kind)}</dd></div><div><dt>Card ending</dt><dd id="card-ending">${a.last4 ? '<button class="link" data-reveal-ending>Reveal last 4 digits</button>' : "Not added"}</dd></div></dl></div></div><div class="account-actions"><button class="primary" data-account-expense="${esc(id)}">＋ Add expense</button><button class="secondary" data-account-income="${esc(id)}">＋ Money in</button><button class="secondary" data-edit-account="${esc(id)}">✎ Edit card</button></div><div class="account-stat-grid"><div><small>Starting balance</small><b>${cash(a.opening, a.currency)}</b></div><div><small>Total spent</small><b>${cash(spent, a.currency)}</b></div><div><small>Total received</small><b>${cash(received, a.currency)}</b></div></div><div class="section-heading"><h2>Activity on this account</h2><span class="pill">${entries.length} entries</span></div><div class="account-history">${txRows(entries)}</div>${receipts.length ? `<div class="section-heading"><h2>Receipts for this account</h2></div><div class="account-receipts">${receipts.map((r) => `<button class="secondary" data-view-receipt="${esc(r.id)}">▤ ${esc(r.shop)} · ${esc(r.date)}</button>`).join("")}</div>` : ""}<p class="detail-note">Manually tracked. Recording a purchase changes this balance; it does not move money or connect to your bank.</p>`;
   if (!$("#account-dialog").open) $("#account-dialog").showModal();
 }
 function txRows(entries) {
@@ -318,6 +318,8 @@ function home() {
 }
 function render() {
   if (!state) return;
+  $("#preview-auth").hidden = onlineWallet || !cloud.configured;
+  $("#preview-banner").hidden = onlineWallet;
   $("#crumb").textContent = page;
   $("#privacy").hidden = false;
   document.querySelector("nav").innerHTML = [
@@ -333,7 +335,7 @@ function render() {
         `<button data-page="${p}" class="${page === p ? "active" : ""}"><span>${i}</span><span class="nav-label">${p}</span></button>`,
     )
     .join("");
-  $(".demo").textContent = cloud.configured
+  $(".demo").textContent = onlineWallet
     ? "● Private account"
     : "● Preview · sample data";
   let html = "";
@@ -379,7 +381,7 @@ function render() {
   if (page === "Settings")
     html =
       heading("Make yourself at home.", "A few simple preferences.") +
-      `<div class="panel settings-box"><h2>Your personal space</h2><p>${cloud.configured ? "Signed in as " + esc(person?.email) + ". Records save online and refresh across your devices." : "This is a local design preview. Sample records save only in this browser. Online sign-in and storage need the one-time setup in HANDOVER.md."}</p><button class="secondary" data-action="refresh">Refresh my records</button> <button class="secondary" data-action="export">Download my records</button>${cloud.configured ? ' <button class="secondary" data-action="logout">Sign out</button>' : ""}<hr><h2>Help</h2><button class="secondary" data-action="help">Open wallet tutorial</button>${cloud.configured ? '<hr><h2>Account security</h2><p>New browser sessions require your password and authenticator code.</p><button class="secondary" data-action="password">Change password</button> <button class="secondary" data-action="sessions">Signed-in browsers</button>' : ""}<hr><h2>Private by design</h2><p>Use account nicknames and optional last four digits only. Never enter your PIN, CVV, password, or full card number. Receipts can contain personal information: check them before uploading.</p><h2>Exchange rates</h2><p>Euro amounts use the latest available Frankfurter reference rates. Rates can be delayed; each foreign account shows its rate date. These are estimates, excluding fees. Original balances never change with exchange rates.</p><h2>Need to correct a purchase?</h2><p>Delete it from Activity and add it again. Your account balance updates automatically.</p></div>`;
+      `<div class="panel settings-box"><h2>Your personal space</h2><p>${onlineWallet ? "Signed in as " + esc(person?.email) + ". Records save online and refresh across your devices." : "This is a local design preview. Sample changes last until you reload. Create an account to start with an empty wallet."}</p><button class="secondary" data-action="refresh">Refresh my records</button> <button class="secondary" data-action="export">Download my records</button>${onlineWallet ? ' <button class="secondary" data-action="logout">Sign out</button>' : ""}<hr><h2>Help</h2><button class="secondary" data-action="help">Open wallet tutorial</button>${onlineWallet ? '<hr><h2>Account security</h2><p>New browser sessions require your password and authenticator code.</p><button class="secondary" data-action="password">Change password</button> <button class="secondary" data-action="sessions">Signed-in browsers</button>' : ""}<hr><h2>Private by design</h2><p>Use account nicknames and optional last four digits only. Never enter your PIN, CVV, password, or full card number. Receipts can contain personal information: check them before uploading.</p><h2>Exchange rates</h2><p>Euro amounts use the latest available Frankfurter reference rates. Rates can be delayed; each foreign account shows its rate date. These are estimates, excluding fees. Original balances never change with exchange rates.</p><h2>Need to correct a purchase?</h2><p>Delete it from Activity and add it again. Your account balance updates automatically.</p></div>`;
   $("#content").innerHTML = html;
   if (page === "Receipts") loadReceiptImages();
 }
@@ -581,15 +583,9 @@ function openForm(type, account) {
   if (account && $("#f-account")) $("#f-account").value = account;
 }
 async function commit(next) {
-  if (cloud.configured) next.__revision = await cloud.save(next);
+  if (onlineWallet) next.__revision = await cloud.save(next);
   else {
-    try {
-      localStorage.setItem(demoKey, JSON.stringify(next));
-    } catch {
-      throw Error(
-        "Browser storage is full. Remove an old receipt and try again.",
-      );
-    }
+    // Preview changes stay in memory and are discarded on reload.
   }
   state = next;
   render();
@@ -611,7 +607,7 @@ async function photo(file) {
   );
   if (!blob || blob.size > 2 * 1024 * 1024)
     throw Error("Image is too large. Try a smaller photo.");
-  if (cloud.configured) return { path: await cloud.upload(blob) };
+  if (onlineWallet) return { path: await cloud.upload(blob) };
   return { image: canvas.toDataURL("image/jpeg", 0.8) };
 }
 $("#form").addEventListener("submit", async (event) => {
@@ -725,8 +721,8 @@ async function loadReceiptImages() {
     const el = document.querySelector(`[data-receipt="${CSS.escape(r.id)}"]`);
     if (!el) continue;
     try {
-      const url = cloud.configured ? await cloud.receiptUrl(r.path) : r.image;
-      if (cloud.configured) urls.push(url);
+      const url = onlineWallet ? await cloud.receiptUrl(r.path) : r.image;
+      if (onlineWallet) urls.push(url);
       if (el.isConnected) el.src = url;
     } catch {
       el.alt = "Unable to load receipt";
@@ -798,8 +794,8 @@ async function showSessions() {
     '<p>Review browsers that completed authenticator verification.</p>' +
     '<button class="secondary" data-action="logout-others">Sign out all other browsers</button>');
 }
-async function refresh() {
-  if (cloud.configured) {
+async function refresh(authenticated = onlineWallet) {
+  if (authenticated) {
     const signedInId = person?.id;
     if (!signedInId) return;
     const record = await cloud.load();
@@ -808,6 +804,7 @@ async function refresh() {
     if (!state || (loaded.__revision || 0) >= (state.__revision || 0))
       state = loaded;
     state.currency = "EUR";
+    onlineWallet = true;
     render();
     checkNewSignIns(signedInId).catch(() => {});
     const tutorialKey = "kora-tutorial:" + signedInId;
@@ -902,8 +899,8 @@ document.addEventListener("click", async (event) => {
     if (b.dataset.viewReceipt) {
       $("#account-dialog").close();
       const r = state.receipts.find((r) => r.id === b.dataset.viewReceipt);
-      const url = cloud.configured ? await cloud.receiptUrl(r.path) : r.image;
-      if (cloud.configured) urls.push(url);
+      const url = onlineWallet ? await cloud.receiptUrl(r.path) : r.image;
+      if (onlineWallet) urls.push(url);
       $("#modal-title").textContent = r.shop;
       $("#fields").innerHTML =
         `<img src="${esc(url)}" alt="Receipt" style="width:100%">`;
@@ -955,16 +952,26 @@ document.addEventListener("click", async (event) => {
       await showSessions();
       toast("Other sessions signed out.");
     }
+    if (action === "register" || action === "login") {
+      if (!cloud.configured || onlineWallet) return;
+      loginScreen(action === "register");
+      return;
+    }
+    if (action === "preview") {
+      showDemo();
+      return;
+    }
     if (action === "logout") {
       newestOtherSession = null;
       $("#account-dialog").close();
       $("#account-detail").innerHTML = "";
       state = null;
+      onlineWallet = false;
       person = null;
       for (const url of urls) URL.revokeObjectURL(url);
       urls = [];
-      loginScreen();
       await cloud.logout();
+      showDemo();
     }
   } catch (error) {
     toast(error.message);
@@ -998,7 +1005,17 @@ document.addEventListener("input", (e) => {
     );
   }
 });
+function showDemo() {
+  onlineWallet = false;
+  state = demo();
+  page = "Home";
+  render();
+}
 function loginScreen(registering = false) {
+  state = null;
+  onlineWallet = false;
+  $("#preview-auth").hidden = true;
+  $("#preview-banner").hidden = true;
   document.querySelector("nav").innerHTML = "";
   $("#privacy").hidden = true;
   $(".demo").textContent = "● Private money space";
@@ -1008,21 +1025,22 @@ function loginScreen(registering = false) {
     : 'required autocomplete="current-password"';
   $("#content").innerHTML =
     '<div class="login-wrap"><h1>Your private wallet</h1><div class="panel login-panel"><h2>' + title +
-    '</h2><p>Use your invited email address.</p><form id="login-form">' +
+    '</h2><p>Use your email address.</p><form id="login-form">' +
     field("Email address", "email", "email", 'required autocomplete="username"') +
     field("Password", "password", "password", passwordOptions) +
     (registering ? '<small>Use at least 12 characters.</small>' : '') +
     '<p id="login-error" role="alert"></p><p id="login-status" role="status"></p><button class="primary submit">' +
     (registering ? 'Create account' : 'Sign in') +
     '</button></form><button id="auth-mode" class="secondary" type="button">' +
-    (registering ? 'Back to sign in' : 'Create an account') + '</button></div></div>';
+    (registering ? 'Back to sign in' : 'Create an account') + '</button><button class="secondary" type="button" data-action="preview">Back to sample wallet</button></div></div>';
   $("#auth-mode").onclick = () => loginScreen(!registering);
   $("#login-form").onsubmit = async (e) => {
     e.preventDefault();
     const form = e.currentTarget;
     const button = form.querySelector("button");
     const mode = $("#auth-mode");
-    button.disabled = mode.disabled = true;
+    const back = $('[data-action="preview"]');
+    button.disabled = mode.disabled = back.disabled = true;
     $("#login-error").textContent = "";
     $("#login-status").textContent = "";
     try {
@@ -1043,13 +1061,13 @@ function loginScreen(registering = false) {
     } catch (error) {
       $("#login-error").textContent = error.message;
     } finally {
-      button.disabled = mode.disabled = false;
+      button.disabled = mode.disabled = back.disabled = false;
     }
   };
 }
 async function openAuthenticatedWallet() {
   const factor = await cloud.secondFactor();
-  if (!factor) return refresh();
+  if (!factor) return refresh(true);
   $("#content").innerHTML =
     '<div class="login-wrap"><h1>Your private wallet</h1><div class="panel login-panel">' +
     (factor.secret
@@ -1066,7 +1084,7 @@ async function openAuthenticatedWallet() {
     submit.disabled = true;
     try {
       await cloud.verifyFactor(factor.id, new FormData(form).get("code"));
-      await refresh();
+      await refresh(true);
     } catch (error) {
       $("#mfa-error").textContent = error.message;
     } finally {
@@ -1079,27 +1097,20 @@ async function init() {
     try {
       person = await cloud.session();
       if (person) await openAuthenticatedWallet();
-      else loginScreen();
+      else showDemo();
     } catch (error) {
-      state = null;
       loginScreen();
-      $("#login-error").textContent =
-        error.message || "Could not load your account. Sign in again.";
+      $("#login-error").textContent = error.message || "Could not load your account. Sign in again.";
     }
   } else {
-    try {
-      state = JSON.parse(localStorage.getItem(demoKey)) || demo();
-    } catch {
-      state = demo();
-    }
-    render();
+    showDemo();
   }
   rates();
 }
 document.addEventListener("visibilitychange", () => {
   if (
     !document.hidden &&
-    cloud.configured &&
+    onlineWallet &&
     state &&
     !$("#modal").open &&
     !$("#account-dialog").open &&
@@ -1109,7 +1120,7 @@ document.addEventListener("visibilitychange", () => {
 });
 setInterval(() => {
   if (
-    cloud.configured &&
+    onlineWallet &&
     state &&
     !document.hidden &&
     !$("#modal").open &&

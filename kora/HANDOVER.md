@@ -16,20 +16,20 @@ Do not upload `node_modules`, `.openai`, `.env` files, actual receipts, exports,
 
 1. Create a new Supabase project in your account. Choose a suitable region and a strong database password; retain it in your password manager.
 2. In SQL Editor, run `supabase/schema.sql` **once on a new project**. It creates the private vault, invitation allowlist, controlled save function, and private receipt bucket.
-3. Open `supabase/invite.sql`, replace the example with his actual email address and run that statement privately. Do not commit the real email. Add your test email separately if you need a test account; each user receives separate records.
+3. Apply the authentication migrations listed below to enable public registration.
 4. In Supabase API settings, obtain the project URL (`https://PROJECT.supabase.co`) and **publishable** key (`sb_publishable_...`). These two values configure the browser. They are not privileged secrets. The build refuses service-role/secret keys.
 5. Never put the database password, Supabase service-role/secret key, or SMTP password in the source, browser configuration, GitHub or a chat.
 
-Access is enforced in the database, not by hiding buttons. Only verified, invited users can read or save their own vault and their own receipt folder. An uninvited email address may create an authentication identity, but cannot access app records. There are no anonymous table read/write grants. Receipt buckets must remain private.
+The database requires a confirmed email, authenticator verification, and a current session. Signed-in users can access their own vault and receipt folder.
 
 ## 3. Enable verified email and password sign-in
 
-Run `supabase/access-hardening.sql` after the base schema. In Authentication → Auth Hooks, enable **Before User Created**, choose **Postgres**, and select `public.kora_before_signup`. This blocks account creation for emails outside the private invite list. Keep TOTP enabled in Authentication → Multi-Factor. Supabase requires a verified authenticator session for wallet and receipt access, including requests made directly to its API.
+Run `supabase/access-hardening.sql`, `supabase/session-security.sql`, then `supabase/public-registration.sql` after the base schema. The final migration removes the invitation check. Keep TOTP enabled.
 
 1. In Supabase Authentication, enable the Email provider, email signups, and **Confirm email**. Set the minimum password length to at least 12.
 2. Configure [custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) in Supabase using a verified sender. The built-in mailer only sends to project team members. Enter mail credentials directly in Supabase.
 3. Set the final HTTPS app origin as the Site URL and allow the exact app callback URL ending in a slash. For local development, separately allow http://127.0.0.1:4173/.
-4. Add the intended user's email to the private allowlist using Step 2. The user chooses their own password in Kora and confirms ownership through the email link. Do not share or store their password.
+4. Open the public demo and choose Create an account. Confirm the email and set up an authenticator before entering real data.
 
 Kora uses the Supabase SDK with PKCE and stores its session in the current tab. Opening a confirmation link elsewhere may require returning to the app and signing in manually. Keep email confirmation enabled. The app has no self-service password reset screen yet.
 
@@ -37,7 +37,7 @@ On the first sign-in, set up the authenticator before entering real wallet data.
 
 ### Using a Supabase project he owns
 
-He can create a Supabase account and a dedicated Kora project in his own organization. Apply both SQL files, configure the signup hook, invite his address, and point a dedicated deployment at that project's publishable key and URL. He then registers an app login in that project. His wallet and receipt folder use the Supabase Auth user ID, so the same login opens the same data on phone and PC. Project ownership and Kora sign-in are separate accounts. Switching to another project later requires moving the data and setting up sign-in there.
+He can create a Supabase account and a dedicated Kora project in his own organization. Apply the base schema and the authentication migrations, and point a dedicated deployment at that project's publishable key and URL. He then registers an app login in that project. His wallet and receipt folder use the Supabase Auth user ID, so the same login opens the same data on phone and PC. Project ownership and Kora sign-in are separate accounts. Switching to another project later requires moving the data and setting up sign-in there.
 
 ## 4. Host with Cloudflare Pages when ready
 
@@ -58,11 +58,11 @@ Reference: [Cloudflare Pages build configuration](https://developers.cloudflare.
 
 ## 5. Verify before real use
 
-- Open on PC, sign in with an invited email address, add an account with €100 and record a €12.34 expense. The balance must be €87.66.
+- Open on PC, sign in with a confirmed email address, add an account with €100 and record a €12.34 expense. The balance must be €87.66.
 - Sign in with the same account on the phone. Check the balance and receipt photo. Updates refresh when the tab becomes visible or within 30 seconds; Settings also has Refresh.
 - Add a second account using NGN/KES/GHS/etc. Its expense must affect only that account. Check the original amount, euro estimate and source rate date.
-- Sign in with a separate invited test identity. It must start empty and must not access the first user's vault or receipt paths, even via direct API requests.
-- Test with no login and an uninvited login. Database writes and receipt reads/uploads must be denied. Inspect this directly in a dedicated staging project; UI hiding is not enough.
+- Sign in with a separate verified test identity. It must start empty and must not access the first user's vault or receipt paths, even via direct API requests.
+- Test with no login and a password-only login. Database writes and receipt reads/uploads must be denied. Inspect this directly in a dedicated staging project; UI hiding is not enough.
 - Open two devices, edit at the same time, and check that a stale save produces a conflict instead of silently replacing newer records. The form retains its inputs and allows a reviewed retry.
 - Upload a harmless test receipt. Confirm the bucket is private and the public storage URL cannot retrieve it. Photos are re-encoded to remove original image metadata; receipt text itself can still contain sensitive details.
 - Disconnect the internet and try saving. It must show a failure, not a success. Restore the connection and retry.
@@ -85,7 +85,7 @@ Configure the following once in the GitHub repository's `production` environment
 | `CF_PAGES_PROJECT`         | Variable (existing Pages project name)                          |
 | `CLOUDFLARE_API_TOKEN`     | Secret (restricted to Pages deployment in the intended account) |
 
-Use either this manual workflow or Cloudflare's automatic Git builds as your primary publishing route. The first setup still needs provider sign-in, an approved Supabase project, its database schema, invited email, and verified email delivery. There is no honest one-click way to skip the account owner approving those connections.
+Use either this manual workflow or Cloudflare's automatic Git builds as your primary publishing route. The first setup still needs provider sign-in, an approved Supabase project, its database schema, and verified email delivery. There is no honest one-click way to skip the account owner approving those connections.
 
 Keep the parent repository structure when uploading: `.github/` at the top, app code under `kora/`. The workflows use `kora` as their working directory.
 

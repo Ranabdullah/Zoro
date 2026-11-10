@@ -30,7 +30,7 @@ export async function register(email, password) {
       throw Error("Choose a stronger password and try again.");
     if (error.status === 429)
       throw Error("Too many attempts. Please wait before trying again.");
-    throw Error("Registration could not be completed. Ask the app owner to confirm your invitation and email delivery.");
+    throw Error("Registration could not be completed. Check the email address or contact Kora support if the confirmation email cannot be sent.");
   }
   if (data.session) {
     await logout();
@@ -74,7 +74,7 @@ export async function changePassword(currentPassword, password) {
 export async function secondFactor() {
   const invited = await client.rpc("kora_invited");
   if (invited.error || invited.data !== true)
-    throw Error("This email must be verified and invited before it can open Kora.");
+    throw Error("Confirm your email before opening your Kora wallet.");
   const { data: level, error } = await client.auth.mfa.getAuthenticatorAssuranceLevel();
   if (error) throw Error("Could not check your sign-in security.");
   if (level.currentLevel === "aal2" && level.nextLevel === "aal2") return null;
@@ -103,7 +103,7 @@ export async function load() {
   const allowed = await client.rpc("kora_allowed");
   if (allowed.error || !allowed.data)
     throw Error(
-      "Wallet access requires an invitation and a verified authenticator.",
+      "Wallet access requires a verified email and authenticator.",
     );
   const { data, error } = await client
     .from("kora_vaults")

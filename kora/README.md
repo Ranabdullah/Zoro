@@ -24,7 +24,7 @@ Open http://127.0.0.1:4173 on this PC. Without backend configuration, this is a 
 - Latest available reference-rate euro estimates with rate dates, not bank conversion quotes.
 - Receipt photos with optional notes; image resizing and JPEG re-encoding before storage.
 - Debt reminders, activity search, hide-balances control and records download.
-- Supabase verified email and password registration and sign-in, invite-only data access, per-user database policies, private receipt storage and conflicting-write detection.
+- Supabase verified email and password registration and sign-in, owner-only data access, per-user database policies, private receipt storage and conflicting-write detection.
 
 There is no bank linking, payment processing, OCR, SMS login or automatic statement reconciliation. Accounts are manual ledgers. Debt settlement is a reminder status; record any payment separately. The online export contains receipt metadata, not the photo files.
 
@@ -38,7 +38,7 @@ Read **HANDOVER.md**. Hosting and Supabase must be configured before login/sync 
 - `src/cloud.js`: Supabase adapter; bundled at build time into `dist/cloud.js`.
 - `scripts/build.mjs`: builds client SDK, copies local fonts, generates public backend configuration.
 - `supabase/schema.sql`: one-time schema for a new Supabase project.
-- `supabase/invite.sql`: template for enabling the approved email.
+- `supabase/public-registration.sql`: enables registration without invitations.
 - `tests/`: balance, currency, card-contrast and PostgreSQL access-policy tests.
 - `../.github/workflows/publish.yml`: a manual Publish workflow for repeat deployments after one-time setup.
 
