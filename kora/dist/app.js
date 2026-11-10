@@ -325,6 +325,41 @@ const previewTips = {
   Settings: "Open Help to revisit the walkthrough or try hiding balances with the eye button.",
 };
 const previewTabs = [...document.querySelectorAll(".preview-tabs [role=tab]")];
+const tourSteps = [
+  { page: "Home", title: "Welcome to Kora", description: "Track money across accounts and currencies, record spending, and keep receipts and debts in one place. This sample wallet lets you try it all before creating an account." },
+  { page: "Home", title: "See where your money stands", description: "Overview brings your balances, monthly spending and income together.", controls: [["Add expense", "Record a purchase against the account you used."], ["Add account", "Add a card, bank account or cash balance."]] },
+  { page: "Accounts", title: "Manage your accounts", description: "Keep accounts in their own currencies and see estimated euro totals.", controls: [["Open a card", "See its balance and transactions, or edit the card."], ["Add money received", "Record income against an account."]] },
+  { page: "Activity", title: "Review your transactions", description: "Find the money you recorded coming in and going out.", controls: [["Search", "Find entries by shop or note."], ["Delete", "Remove a mistaken entry and update the account balance."]] },
+  { page: "Receipts", title: "Keep your receipts together", description: "Save a picture and a note for a purchase.", controls: [["Add receipt", "Choose a photo or use your phone camera."]] },
+  { page: "Debts", title: "Track what is owed", description: "Keep track of money you owe and money others owe you.", controls: [["Add debt", "Record who owes what."], ["Mark settled", "Mark a debt as paid."]] },
+  { page: "Settings", title: "Make Kora yours", description: "You can try the sample wallet freely. When you’re ready, create an account to start with your own empty wallet.", controls: [["Settings → Help", "Find this guide again."], ["Create an account", "Set up a private wallet with your email and authenticator."]] },
+];
+let tourIndex = 0;
+const tourDialog = $("#wallet-tour");
+function showTourStep(index) {
+  tourIndex = index;
+  const step = tourSteps[index];
+  page = step.page;
+  render();
+  $("#tour-progress").textContent = `Step ${index + 1} of ${tourSteps.length}`;
+  $("#tour-title").textContent = step.title;
+  $("#tour-description").textContent = step.description;
+  $("#tour-controls").innerHTML = (step.controls || []).map(([label, tip]) =>
+    `<div><dt>${esc(label)}</dt><dd>${esc(tip)}</dd></div>`).join("");
+  const back = tourDialog.querySelector('[data-action="previous-tour"]');
+  back.hidden = index === 0;
+  const next = tourDialog.querySelector('[data-action="next-tour"]');
+  next.textContent = index === tourSteps.length - 1 ? "Finish tour" : "Next";
+  if (!tourDialog.open) tourDialog.showModal();
+  next.focus();
+}
+tourDialog.addEventListener("close", () => {
+  if (!onlineWallet && state) {
+    page = "Home";
+    render();
+    $('[data-action="start-tour"]').focus();
+  }
+});
 $(".preview-tabs").addEventListener("keydown", event => {
   const index = previewTabs.indexOf(event.target);
   if (index < 0) return;
@@ -973,6 +1008,13 @@ document.addEventListener("click", async (event) => {
       );
     }
     if (action === "help") showTutorial();
+    if (action === "start-tour" && !onlineWallet && state) showTourStep(0);
+    if (action === "previous-tour" && tourIndex > 0) showTourStep(tourIndex - 1);
+    if (action === "next-tour") {
+      if (tourIndex + 1 < tourSteps.length) showTourStep(tourIndex + 1);
+      else tourDialog.close();
+    }
+    if (action === "skip-tour") tourDialog.close();
     if (action === "close-help") $("#settings-dialog").close();
     if (action === "password" && person && state) showPasswordForm();
     if (action === "sessions" && person && state) await showSessions();
@@ -1135,6 +1177,7 @@ async function init() {
   } else {
     showDemo();
   }
+  if (!person && state) showTourStep(0);
   rates();
 }
 document.addEventListener("visibilitychange", () => {

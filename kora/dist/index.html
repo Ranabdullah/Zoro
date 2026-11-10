@@ -56,6 +56,7 @@
         <div class="preview-cta">
           <button class="primary" data-action="register">Create an account</button>
           <button class="secondary" data-action="login">Sign in</button>
+          <button class="secondary" data-action="start-tour">Take the tour</button>
         </div>
         <div id="preview-tutorial">
           <div class="preview-tabs" role="tablist" aria-label="Explore Kora">
@@ -86,6 +87,17 @@
         >
       </footer>
     </main>
+    <dialog id="wallet-tour" aria-labelledby="tour-title" aria-describedby="tour-description">
+      <div class="tour-progress" id="tour-progress"></div>
+      <h2 id="tour-title"></h2>
+      <p id="tour-description"></p>
+      <dl id="tour-controls"></dl>
+      <div class="tour-actions">
+        <button type="button" class="secondary" data-action="skip-tour">Skip tour</button>
+        <button type="button" class="secondary" data-action="previous-tour">Back</button>
+        <button type="button" class="primary" data-action="next-tour" autofocus>Next</button>
+      </div>
+    </dialog>
     <dialog id="settings-dialog" aria-labelledby="settings-dialog-title">
       <form method="dialog" class="modal-head">
         <h2 id="settings-dialog-title"></h2>
