@@ -24,12 +24,20 @@ Access is enforced in the database, not by hiding buttons. Only verified, invite
 
 ## 3. Enable verified email and password sign-in
 
+Run `supabase/access-hardening.sql` after the base schema. In Authentication → Auth Hooks, enable **Before User Created**, choose **Postgres**, and select `public.kora_before_signup`. This blocks account creation for emails outside the private invite list. Keep TOTP enabled in Authentication → Multi-Factor. Supabase requires a verified authenticator session for wallet and receipt access, including requests made directly to its API.
+
 1. In Supabase Authentication, enable the Email provider, email signups, and **Confirm email**. Set the minimum password length to at least 12.
 2. Configure [custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) in Supabase using a verified sender. The built-in mailer only sends to project team members. Enter mail credentials directly in Supabase.
 3. Set the final HTTPS app origin as the Site URL and allow the exact app callback URL ending in a slash. For local development, separately allow http://127.0.0.1:4173/.
 4. Add the intended user's email to the private allowlist using Step 2. The user chooses their own password in Kora and confirms ownership through the email link. Do not share or store their password.
 
 Kora uses the Supabase SDK with PKCE and stores its session in the current tab. Opening a confirmation link elsewhere may require returning to the app and signing in manually. Keep email confirmation enabled. The app has no self-service password reset screen yet.
+
+On the first sign-in, set up the authenticator before entering real wallet data. Keep the authenticator backed up securely. Each new browser session needs the password and authenticator code. This does not bind a session to a physical device.
+
+### Using a Supabase project he owns
+
+He can create a Supabase account and a dedicated Kora project in his own organization. Apply both SQL files, configure the signup hook, invite his address, and point a dedicated deployment at that project's publishable key and URL. He then registers an app login in that project. His wallet and receipt folder use the Supabase Auth user ID, so the same login opens the same data on phone and PC. Project ownership and Kora sign-in are separate accounts. Switching to another project later requires moving the data and setting up sign-in there.
 
 ## 4. Host with Cloudflare Pages when ready
 

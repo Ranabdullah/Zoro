@@ -953,7 +953,7 @@ function loginScreen(registering = false) {
           "Check your email for a confirmation link. After confirming, return here to sign in.";
       } else {
         person = await cloud.login(email, password);
-        await refresh();
+        await openAuthenticatedWallet();
       }
     } catch (error) {
       $("#login-error").textContent = error.message;
@@ -962,11 +962,38 @@ function loginScreen(registering = false) {
     }
   };
 }
+async function openAuthenticatedWallet() {
+  const factor = await cloud.secondFactor();
+  if (!factor) return refresh();
+  $("#content").innerHTML =
+    '<div class="login-wrap"><h1>Your private wallet</h1><div class="panel login-panel">' +
+    (factor.secret
+      ? '<h2>Set up your authenticator</h2><p>Add a time-based account named Kora in your authenticator app. Enter this setup key there, then enter the six-digit code below.</p><p><code>' + esc(factor.secret) + '</code></p>'
+      : '<h2>Verify your sign-in</h2><p>Enter the six-digit code from your authenticator app.</p>') +
+    '<form id="mfa-form">' +
+    field("Authenticator code", "code", "text", 'required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"') +
+    '<p id="mfa-error" role="alert"></p><button class="primary submit">Verify</button></form>' +
+    '<button type="button" class="secondary" data-action="logout">Sign out</button></div></div>';
+  $("#mfa-form").onsubmit = async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submit = form.querySelector("button");
+    submit.disabled = true;
+    try {
+      await cloud.verifyFactor(factor.id, new FormData(form).get("code"));
+      await refresh();
+    } catch (error) {
+      $("#mfa-error").textContent = error.message;
+    } finally {
+      submit.disabled = false;
+    }
+  };
+}
 async function init() {
   if (cloud.configured) {
     try {
       person = await cloud.session();
-      if (person) await refresh();
+      if (person) await openAuthenticatedWallet();
       else loginScreen();
     } catch (error) {
       state = null;

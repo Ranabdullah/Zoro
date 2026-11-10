@@ -19,10 +19,11 @@ test("private vault and receipt policies enforce owner access and save revisions
     name: "test",
   };
   await db.exec(`
-    create role anon;create role authenticated;
+    create role anon;create role authenticated;create role supabase_auth_admin;
     create schema auth;create schema storage;
     create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
     create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+    create function auth.jwt() returns jsonb language sql stable as $$select jsonb_build_object('aal',current_setting('request.jwt.claim.aal',true))$$;
     create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
     create table storage.objects(id bigint generated always as identity primary key,bucket_id text,name text);
     alter table storage.objects enable row level security;
@@ -34,6 +35,7 @@ test("private vault and receipt policies enforce owner access and save revisions
   await db.exec(
     await readFile(new URL("../supabase/schema.sql", import.meta.url), "utf8"),
   );
+  await db.exec(await readFile(new URL("../supabase/access-hardening.sql", import.meta.url), "utf8"));
   for (const [id, email, verified] of [
     [alice, "alice@example.invalid", true],
     [bob, "bob@example.invalid", true],
@@ -50,11 +52,12 @@ test("private vault and receipt policies enforce owner access and save revisions
         email,
       ]);
   }
-  const acting = async (role, id, fn) => {
+  const acting = async (role, id, fn, aal = "aal2") => {
     await db.exec("set role " + role);
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [
       id || "",
     ]);
+    await db.query("select set_config('request.jwt.claim.aal',$1,false)", [aal]);
     try {
       return await fn();
     } finally {
@@ -67,6 +70,22 @@ test("private vault and receipt policies enforce owner access and save revisions
       JSON.stringify(vault),
     ]);
   try {
+    await t.test("signup hook rejects strangers and is callable only by Auth", async () => {
+      const hook = email => db.query("select public.kora_before_signup($1) as result", [JSON.stringify({user:{email}})]);
+      await acting("supabase_auth_admin", null, async () => {
+        assert.deepEqual((await hook("ALICE@example.invalid")).rows[0].result, {});
+        assert.equal((await hook("outsider@example.invalid")).rows[0].result.error.http_code, 403);
+      });
+      await acting("authenticated", alice, () => assert.rejects(() => hook("alice@example.invalid"), /permission denied/));
+    });
+    await t.test("a stolen password alone cannot read or write wallet data or receipts", () =>
+      acting("authenticated", alice, async () => {
+        assert.equal((await db.query("select public.kora_invited() as invited")).rows[0].invited, true);
+        assert.equal((await db.query("select public.kora_allowed() as allowed")).rows[0].allowed, false);
+        assert.equal((await db.query("select * from public.kora_vaults")).rows.length, 0);
+        await assert.rejects(() => save(0), /Access denied/);
+        await assert.rejects(() => db.query("insert into storage.objects(bucket_id,name) values('kora-receipts',$1)", [alice + "/photo.jpg"]), /row-level security/);
+      }, "aal1"));
     await t.test("anonymous requests cannot read or save vaults", () =>
       acting("anon", null, async () => {
         await assert.rejects(
