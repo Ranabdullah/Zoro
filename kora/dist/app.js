@@ -1105,6 +1105,8 @@ async function init() {
   } else {
     showDemo();
   }
+  if (!person && state && new URLSearchParams(location.search).get("tutorial") === "1")
+    showTutorial();
   rates();
 }
 document.addEventListener("visibilitychange", () => {
