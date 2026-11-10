@@ -57,8 +57,18 @@
           <button class="primary" data-action="register">Create an account</button>
           <button class="secondary" data-action="login">Sign in</button>
         </div>
-        <details id="preview-tutorial" open>
-          <summary>How Kora works</summary>
+        <div id="preview-tutorial">
+          <div class="preview-tabs" role="tablist" aria-label="Explore Kora">
+            <button type="button" role="tab" id="tour-home" data-page="Home" aria-controls="content">Overview</button>
+            <button type="button" role="tab" id="tour-accounts" data-page="Accounts" aria-controls="content">Accounts</button>
+            <button type="button" role="tab" id="tour-activity" data-page="Activity" aria-controls="content">Activity</button>
+            <button type="button" role="tab" id="tour-receipts" data-page="Receipts" aria-controls="content">Receipts</button>
+            <button type="button" role="tab" id="tour-debts" data-page="Debts" aria-controls="content">Debts</button>
+            <button type="button" role="tab" id="tour-settings" data-page="Settings" aria-controls="content">Settings</button>
+          </div>
+          <p id="preview-tip" aria-live="polite"></p>
+        </div>
+        <template id="wallet-guide">
           <ol class="tutorial-steps">
             <li><strong>Explore the dashboard.</strong> See what you have, what came in and what you spent this month. Foreign currency totals are estimated in euros.</li>
             <li><strong>Try an account.</strong> Open a sample card to see its balance and activity. In Accounts, you can add a bank account, card or cash balance in its own currency.</li>
@@ -67,8 +77,7 @@
             <li><strong>Track debts.</strong> Open Debts to record money you owe or money someone owes you and mark it settled when paid.</li>
             <li><strong>Start your own wallet.</strong> If you like Kora, choose Create an account, confirm your email and set up an authenticator. Your wallet starts empty. You can replay this guide in Settings → Help.</li>
           </ol>
-          <a class="link" href="#content">Try the sample wallet ↓</a>
-        </details>
+        </template>
       </section>
       <div id="content" tabindex="-1"></div>
       <footer>

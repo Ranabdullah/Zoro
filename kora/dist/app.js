@@ -316,10 +316,43 @@ function home() {
     }</div></div><div class="insight">✧ &nbsp; Small entries. A clearer picture.<br>Keep track as you go, one purchase at a time.</div></section></div><div class="receipt-banner"><span class="receipt-art">▤</span><div><h3>A receipt today. Peace of mind later.</h3><p>Snap it, add a note, and keep it all together.</p></div><button data-action="receipt">＋ Add receipt</button></div>`
   );
 }
+const previewTips = {
+  Home: "Compare the sample balances, income and spending. Try adding a pretend expense.",
+  Accounts: "Open a sample card to see its balance, transactions and currency.",
+  Activity: "Browse the sample transactions or search for a shop.",
+  Receipts: "Try adding a sample photo and note to see how receipts are stored.",
+  Debts: "See what you owe and what is owed to you. Try marking a sample debt as paid.",
+  Settings: "Open Help to revisit the walkthrough or try hiding balances with the eye button.",
+};
+const previewTabs = [...document.querySelectorAll(".preview-tabs [role=tab]")];
+$(".preview-tabs").addEventListener("keydown", event => {
+  const index = previewTabs.indexOf(event.target);
+  if (index < 0) return;
+  const positions = { ArrowLeft: index - 1, ArrowRight: index + 1, Home: 0, End: previewTabs.length - 1 };
+  if (!Object.hasOwn(positions, event.key)) return;
+  event.preventDefault();
+  const next = previewTabs[(positions[event.key] + previewTabs.length) % previewTabs.length];
+  next.click();
+  next.focus();
+});
 function render() {
   if (!state) return;
   $("#preview-auth").hidden = onlineWallet || !cloud.configured;
   $("#preview-banner").hidden = onlineWallet;
+  const content = $("#content");
+  if (onlineWallet) {
+    content.removeAttribute("role");
+    content.removeAttribute("aria-labelledby");
+  } else {
+    for (const tab of previewTabs) {
+      const selected = tab.dataset.page === page;
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      if (selected) content.setAttribute("aria-labelledby", tab.id);
+    }
+    content.setAttribute("role", "tabpanel");
+    $("#preview-tip").textContent = previewTips[page] || "";
+  }
   $("#crumb").textContent = page;
   $("#privacy").hidden = false;
   document.querySelector("nav").innerHTML = [
@@ -736,7 +769,7 @@ function settingsDialog(title, html) {
 }
 function showTutorial(first = false) {
   settingsDialog(first ? "Welcome to Kora" : "Wallet tutorial",
-    $(".tutorial-steps").outerHTML +
+    $("#wallet-guide").innerHTML +
     '<button class="primary" data-action="close-help">Got it</button>');
 }
 function showPasswordForm() {
