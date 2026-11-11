@@ -3,6 +3,7 @@ node_modules/
 !.env.example
 dist/config.js
 dist/cloud.js
+dist/reports.js
 dist/fonts/
 .openai/
 *.zip

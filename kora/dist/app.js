@@ -1,3 +1,4 @@
+import { reportRows } from "./report-data.js";
 import * as cloud from "./cloud.js";
 import {
   cardAppearance,
@@ -217,7 +218,7 @@ function wallet() {
   if (!state.accounts.length)
     return '<section class="wallet-empty panel"><div class="wallet-empty-icon">▣</div><h2>Your wallet starts here.</h2><p>Add your euro account, money back home, or a cash pocket.</p><button class="primary" data-action="account">＋ Add your first account</button></section>';
   const visible = state.accounts.slice(0, 3).reverse();
-  return `<section class="wallet-board"><div class="wallet-display"><div class="wallet-display-heading"><span>THE EVERYDAY WALLET</span><span>${state.accounts.length} accounts</span></div><div class="wallet-stack" style="--stack-count:${visible.length}">${visible.map((a, index) => card(a, { index })).join("")}<div class="wallet-pocket"><span>kora<span class="pocket-dot">.</span></span><small>ALL YOUR WORLDS, TOGETHER</small></div></div><p class="wallet-hint">Tap a card to take a closer look <span>↗</span></p></div><div class="wallet-accounts"><div class="wallet-list-heading"><h3>In your wallet</h3><span>Local balances</span></div>${state.accounts
+  return `<section class="wallet-board"><div class="wallet-display"><div class="wallet-display-heading"><span>THE EVERYDAY WALLET</span><span>${state.accounts.length} accounts</span></div><div class="wallet-stack" style="--stack-count:${visible.length}">${visible.map((a, index) => card(a, { index })).join("")}<div class="wallet-pocket"><span>zoro<span class="pocket-dot">.</span></span><small>ALL YOUR WORLDS, TOGETHER</small></div></div><p class="wallet-hint">Tap a card to take a closer look <span>↗</span></p></div><div class="wallet-accounts"><div class="wallet-list-heading"><h3>In your wallet</h3><span>Local balances</span></div>${state.accounts
     .map((a) => {
       const look = cardAppearance(a);
       return `<button class="account-row" data-account="${esc(a.id)}"><span class="account-marker" style="--marker:${look.colour};--marker-ink:${look.ink}">${a.kind === "Mobile money" ? "▯" : a.kind === "Cash" ? "◇" : "▣"}</span><span class="account-name"><b>${esc(a.name)}</b><small>${esc(accountLocation(a))} · ${esc(a.kind)}</small></span><span class="account-money"><b>${cash(balance(state, a.id), a.currency)}</b><small>${a.currency === "EUR" ? "Euro account" : `<span class="money">${esc(estimated(balance(state, a.id), a.currency).split(" · ")[0])}</span>`}</small></span><span class="row-chevron">›</span></button>`;
@@ -326,13 +327,13 @@ const previewTips = {
 };
 const previewTabs = [...document.querySelectorAll(".preview-tabs [role=tab]")];
 const tourSteps = [
-  { page: "Home", title: "Welcome to Kora", description: "Track money across accounts and currencies, record spending, and keep receipts and debts in one place. This sample wallet lets you try it all before creating an account." },
+  { page: "Home", title: "Welcome to Zoro", description: "Track money across accounts and currencies, record spending, and keep receipts and debts in one place. This sample wallet lets you try it all before creating an account." },
   { page: "Home", title: "See where your money stands", description: "Overview brings your balances, monthly spending and income together.", controls: [["Add expense", "Record a purchase against the account you used."], ["Add account", "Add a card, bank account or cash balance."]] },
   { page: "Accounts", title: "Manage your accounts", description: "Keep accounts in their own currencies and see estimated euro totals.", controls: [["Open a card", "See its balance and transactions, or edit the card."], ["Add money received", "Record income against an account."]] },
   { page: "Activity", title: "Review your transactions", description: "Find the money you recorded coming in and going out.", controls: [["Search", "Find entries by shop or note."], ["Delete", "Remove a mistaken entry and update the account balance."]] },
   { page: "Receipts", title: "Keep your receipts together", description: "Save a picture and a note for a purchase.", controls: [["Add receipt", "Choose a photo or use your phone camera."]] },
   { page: "Debts", title: "Track what is owed", description: "Keep track of money you owe and money others owe you.", controls: [["Add debt", "Record who owes what."], ["Mark settled", "Mark a debt as paid."]] },
-  { page: "Settings", title: "Make Kora yours", description: "You can try the sample wallet freely. When you’re ready, create an account to start with your own empty wallet.", controls: [["Settings → Help", "Find this guide again."], ["Create an account", "Set up a private wallet with your email and authenticator."]] },
+  { page: "Settings", title: "Make Zoro yours", description: "You can try the sample wallet freely. When you’re ready, create an account to start with your own empty wallet.", controls: [["Settings → Help", "Find this guide again."], ["Create an account", "Set up a private wallet with your email and authenticator."]] },
 ];
 let tourIndex = 0;
 const tourDialog = $("#wallet-tour");
@@ -399,6 +400,7 @@ function render() {
     ["Activity", "⇄"],
     ["Receipts", "▤"],
     ["Debts", "◷"],
+    ["Reports", "▤"],
     ["Settings", "⚙"],
   ]
     .map(
@@ -418,7 +420,7 @@ function render() {
         "Cards, bank accounts, mobile money and cash.",
         '<button class="primary" data-action="account">＋ Add account</button>',
       ) +
-      `${wallet()}<p class="rate-note">${esc(fxStatus)}. Euro values are estimates, not bank quotes.</p><div class="panel"><h2>Simple, manual tracking</h2><p class="subtitle" style="margin-top:12px;line-height:1.8">Add your current balance once. Record what you spend or receive, and Kora does the maths. No bank login or full card number needed.</p><button class="secondary" data-action="income" style="margin-top:18px">＋ Add money received</button></div>`;
+      `${wallet()}<p class="rate-note">${esc(fxStatus)}. Euro values are estimates, not bank quotes.</p><div class="panel"><h2>Simple, manual tracking</h2><p class="subtitle" style="margin-top:12px;line-height:1.8">Add your current balance once. Record what you spend or receive, and Zoro does the maths. No bank login or full card number needed.</p><button class="secondary" data-action="income" style="margin-top:18px">＋ Add money received</button></div>`;
   if (page === "Activity")
     html =
       heading(
@@ -452,10 +454,46 @@ function render() {
   if (page === "Settings")
     html =
       heading("Make yourself at home.", "A few simple preferences.") +
-      `<div class="panel settings-box"><h2>Your personal space</h2><p>${onlineWallet ? "Signed in as " + esc(person?.email) + ". Records save online and refresh across your devices." : "This is a local design preview. Sample changes last until you reload. Create an account to start with an empty wallet."}</p><button class="secondary" data-action="refresh">Refresh my records</button> <button class="secondary" data-action="export">Download my records</button>${onlineWallet ? ' <button class="secondary" data-action="logout">Sign out</button>' : ""}<hr><h2>Help</h2><button class="secondary" data-action="help">Open wallet tutorial</button>${onlineWallet ? '<hr><h2>Account security</h2><p>New browser sessions require your password and authenticator code.</p><button class="secondary" data-action="password">Change password</button> <button class="secondary" data-action="sessions">Signed-in browsers</button>' : ""}<hr><h2>Private by design</h2><p>Use account nicknames and optional last four digits only. Never enter your PIN, CVV, password, or full card number. Receipts can contain personal information: check them before uploading.</p><h2>Exchange rates</h2><p>Euro amounts use the latest available Frankfurter reference rates. Rates can be delayed; each foreign account shows its rate date. These are estimates, excluding fees. Original balances never change with exchange rates.</p><h2>Need to correct a purchase?</h2><p>Delete it from Activity and add it again. Your account balance updates automatically.</p></div>`;
+      `<div class="panel settings-box"><h2>Your personal space</h2><p>${onlineWallet ? "Signed in as " + esc(person?.email) + ". Records save online and refresh across your devices." : "This is a local design preview. Sample changes last until you reload. Create an account to start with an empty wallet."}</p><button class="secondary" data-action="refresh">Refresh my records</button> <button class="secondary" data-action="export">Download my records</button>${onlineWallet ? ' <button class="secondary" data-action="logout">Sign out</button>' : ""}<hr><h2>Reports</h2><button class="secondary" data-go="Reports">Excel and PDF reports</button><hr><h2>Help</h2><button class="secondary" data-action="help">Open wallet tutorial</button>${onlineWallet ? '<hr><h2>Account security</h2><p>New browser sessions require your password and authenticator code.</p><button class="secondary" data-action="password">Change password</button> <button class="secondary" data-action="sessions">Signed-in browsers</button>' : ""}<hr><h2>Private by design</h2><p>Use account nicknames and optional last four digits only. Never enter your PIN, CVV, password, or full card number. Receipts can contain personal information: check them before uploading.</p><h2>Exchange rates</h2><p>Euro amounts use the latest available Frankfurter reference rates. Rates can be delayed; each foreign account shows its rate date. These are estimates, excluding fees. Original balances never change with exchange rates.</p><h2>Need to correct a purchase?</h2><p>Delete it from Activity and add it again. Your account balance updates automatically.</p></div>`;
+  if (page === "Reports") html = heading("Financial reports", "Download your recorded amounts as Excel or PDF.") +
+    '<form id="report-form" class="panel"><div class="report-filters">' +
+    field("From date", "from", "date") + field("To date", "to", "date") +
+    '<label for="report-account">Account</label><select name="account" id="report-account"><option value="">All accounts</option>' +
+    state.accounts.map(a => '<option value="' + esc(a.id) + '">' + esc(a.name) + ' · ' + esc(a.currency) + '</option>').join('') +
+    '</select><label for="report-scope">Include</label><select name="scope" id="report-scope"><option value="all">All transactions</option><option value="receipts">Expenses with receipts</option></select></div>' +
+    '<p>Reports use recorded transaction amounts and original currencies. Receipt photos and unattached photos are excluded.</p>' +
+    '<div class="actions"><button class="primary" type="submit" name="format" value="xlsx">Download Excel</button><button class="secondary" type="submit" name="format" value="pdf">Download PDF</button></div><p id="report-error" role="alert"></p></form>';
   $("#content").innerHTML = html;
   if (page === "Receipts") loadReceiptImages();
 }
+document.addEventListener("submit", async event => {
+  if (event.target.id !== "report-form") return;
+  event.preventDefault();
+  const form = event.target;
+  const filters = Object.fromEntries(new FormData(form));
+  const format = event.submitter?.value || "xlsx";
+  const buttons = [...form.querySelectorAll("button")];
+  buttons.forEach(button => button.disabled = true);
+  try {
+    const rows = reportRows(state, filters);
+    if (!rows.length) throw Error("No matching transactions. Add an expense with its receipt or change the filters.");
+    const period = (filters.from || "All dates") + " to " + (filters.to || "present");
+    const label = period + " | Generated " + new Date().toISOString().slice(0,10);
+    const reports = await import("./reports.js");
+    const data = format === "pdf" ? await reports.pdfReport(rows, label) : await reports.excelReport(rows, label);
+    const blob = new Blob([data], {type: format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "Zoro-" + (filters.scope === "receipts" ? "Receipted-Expenses" : "Financial-Report") + "-" + (filters.from || "All-Dates") + "-to-" + (filters.to || today()) + "." + format;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    $("#report-error").textContent = error.message;
+  } finally {
+    buttons.forEach(button => button.disabled = false);
+  }
+});
 function field(label, name, type = "text", extra = "") {
   return `<label for="f-${name}">${label}</label><input id="f-${name}" name="${name}" type="${type}" ${extra}>`;
 }
@@ -806,7 +844,7 @@ function settingsDialog(title, html) {
   if (!$("#settings-dialog").open) $("#settings-dialog").showModal();
 }
 function showTutorial(first = false) {
-  settingsDialog(first ? "Welcome to Kora" : "Wallet tutorial",
+  settingsDialog(first ? "Welcome to Zoro" : "Wallet tutorial",
     $("#wallet-guide").innerHTML +
     '<button class="primary" data-action="close-help">Got it</button>');
 }
@@ -1094,7 +1132,7 @@ function loginScreen(registering = false) {
   document.querySelector("nav").innerHTML = "";
   $("#privacy").hidden = true;
   $(".demo").textContent = "● Private money space";
-  const title = registering ? "Create your Kora account" : "Sign in to Kora";
+  const title = registering ? "Create your Zoro account" : "Sign in to Zoro";
   const passwordOptions = registering
     ? 'required minlength="12" maxlength="72" autocomplete="new-password"'
     : 'required autocomplete="current-password"';
@@ -1146,7 +1184,7 @@ async function openAuthenticatedWallet() {
   $("#content").innerHTML =
     '<div class="login-wrap"><h1>Your private wallet</h1><div class="panel login-panel">' +
     (factor.secret
-      ? '<h2>Set up your authenticator</h2><p>Add a time-based account named Kora in your authenticator app. Enter this setup key there, then enter the six-digit code below.</p><p><code>' + esc(factor.secret) + '</code></p>'
+      ? '<h2>Set up your authenticator</h2><p>Add a time-based account named Zoro in your authenticator app. Enter this setup key there, then enter the six-digit code below.</p><p><code>' + esc(factor.secret) + '</code></p>'
       : '<h2>Verify your sign-in</h2><p>Enter the six-digit code from your authenticator app.</p>') +
     '<form id="mfa-form">' +
     field("Authenticator code", "code", "text", 'required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"') +

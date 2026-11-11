@@ -25,6 +25,10 @@ await build({
   outfile: "dist/cloud.js",
   minify: true,
 });
+await build({
+  entryPoints: ["src/reports.js"],
+  bundle: true, format: "esm", outfile: "dist/reports.js", minify: true,
+});
 await mkdir("dist/fonts", { recursive: true });
 for (const font of ["dm-sans", "manrope"])
   await copyFile(

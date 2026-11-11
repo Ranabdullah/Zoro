@@ -1114,3 +1114,4 @@ textarea {
 .tutorial-steps { display: grid; gap: .65rem 1.6rem; padding-inline-start: 1.4rem; line-height: 1.5; }
 #content { scroll-margin-top: 1rem; }
 @media (max-width: 850px) { #preview-auth:not([hidden]) { display: none; } }
+.report-filters{display:grid;gap:.5rem;max-width:480px}.brand>span:first-child{display:none}.brand:before{content:"";width:32px;height:36px;background:repeating-linear-gradient(75deg,transparent 0 6px,#244f43 6px 9px,transparent 9px 13px);clip-path:polygon(0 0,100% 0,100% 75%,75% 75%,75% 100%,65% 100%,65% 75%,35% 75%,35% 100%,25% 100%,25% 75%,0 75%)}

@@ -30,7 +30,7 @@ export async function register(email, password) {
       throw Error("Choose a stronger password and try again.");
     if (error.status === 429)
       throw Error("Too many attempts. Please wait before trying again.");
-    throw Error("Registration could not be completed. Check the email address or contact Kora support if the confirmation email cannot be sent.");
+    throw Error("Registration could not be completed. Check the email address or contact Zoro support if the confirmation email cannot be sent.");
   }
   if (data.session) {
     await logout();
@@ -74,7 +74,7 @@ export async function changePassword(currentPassword, password) {
 export async function secondFactor() {
   const invited = await client.rpc("kora_invited");
   if (invited.error || invited.data !== true)
-    throw Error("Confirm your email before opening your Kora wallet.");
+    throw Error("Confirm your email before opening your Zoro wallet.");
   const { data: level, error } = await client.auth.mfa.getAuthenticatorAssuranceLevel();
   if (error) throw Error("Could not check your sign-in security.");
   if (level.currentLevel === "aal2" && level.nextLevel === "aal2") return null;
@@ -88,7 +88,7 @@ export async function secondFactor() {
     if (cleanupError) throw Error("Could not restart authenticator setup.");
   }
   const { data, error: enrollError } = await client.auth.mfa.enroll({
-    factorType: "totp", issuer: "Kora", friendlyName: "Kora authenticator",
+    factorType: "totp", issuer: "Zoro", friendlyName: "Zoro authenticator",
   });
   if (enrollError) throw Error("Could not set up an authenticator. Try signing in again.");
   return { id: data.id, secret: data.totp.secret };
