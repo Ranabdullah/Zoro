@@ -30,7 +30,9 @@ export async function register(email, password) {
       throw Error("Choose a stronger password and try again.");
     if (error.status === 429)
       throw Error("Too many attempts. Please wait before trying again.");
-    throw Error("Registration could not be completed. Check the email address or contact Zoro support if the confirmation email cannot be sent.");
+    throw Error(
+      "Registration could not be completed. Check the email address or contact Zoro support if the confirmation email cannot be sent.",
+    );
   }
   if (data.session) {
     await logout();
@@ -63,48 +65,64 @@ export async function signOutOthers() {
 }
 export async function changePassword(currentPassword, password) {
   const { error } = await client.auth.updateUser({
-    current_password: currentPassword, password,
+    current_password: currentPassword,
+    password,
   });
   if (error) {
     if (error.code === "reauthentication_needed")
       throw Error("Sign out and sign in again before changing your password.");
-    throw Error("Could not change the password. Check your current password and choose a different, strong password.");
+    throw Error(
+      "Could not change the password. Check your current password and choose a different, strong password.",
+    );
   }
 }
 export async function secondFactor() {
   const invited = await client.rpc("kora_invited");
   if (invited.error || invited.data !== true)
     throw Error("Confirm your email before opening your Zoro wallet.");
-  const { data: level, error } = await client.auth.mfa.getAuthenticatorAssuranceLevel();
+  const { data: level, error } =
+    await client.auth.mfa.getAuthenticatorAssuranceLevel();
   if (error) throw Error("Could not check your sign-in security.");
   if (level.currentLevel === "aal2" && level.nextLevel === "aal2") return null;
-  const { data: factors, error: factorError } = await client.auth.mfa.listFactors();
+  const { data: factors, error: factorError } =
+    await client.auth.mfa.listFactors();
   if (factorError) throw Error("Could not load your authenticator.");
   if (factors.totp.length) return { id: factors.totp[0].id };
   if (level.nextLevel === "aal2")
     throw Error("Contact the app owner to restore authenticator access.");
-  for (const factor of factors.all.filter((item) => item.factor_type === "totp" && item.status === "unverified")) {
-    const { error: cleanupError } = await client.auth.mfa.unenroll({ factorId: factor.id });
+  for (const factor of factors.all.filter(
+    (item) => item.factor_type === "totp" && item.status === "unverified",
+  )) {
+    const { error: cleanupError } = await client.auth.mfa.unenroll({
+      factorId: factor.id,
+    });
     if (cleanupError) throw Error("Could not restart authenticator setup.");
   }
   const { data, error: enrollError } = await client.auth.mfa.enroll({
-    factorType: "totp", issuer: "Zoro", friendlyName: "Zoro authenticator",
+    factorType: "totp",
+    issuer: "Zoro",
+    friendlyName: "Zoro authenticator",
   });
-  if (enrollError) throw Error("Could not set up an authenticator. Try signing in again.");
+  if (enrollError)
+    throw Error("Could not set up an authenticator. Try signing in again.");
   return { id: data.id, secret: data.totp.secret };
 }
 export async function verifyFactor(id, code) {
-  const { error } = await client.auth.mfa.challengeAndVerify({ factorId: id, code });
-  if (error) throw Error("Could not verify the code. Try a fresh code from your authenticator.");
+  const { error } = await client.auth.mfa.challengeAndVerify({
+    factorId: id,
+    code,
+  });
+  if (error)
+    throw Error(
+      "Could not verify the code. Try a fresh code from your authenticator.",
+    );
 }
 export async function load() {
   const actor = user?.id;
   if (!actor) throw Error("Please sign in again.");
   const allowed = await client.rpc("kora_allowed");
   if (allowed.error || !allowed.data)
-    throw Error(
-      "Wallet access requires a verified email and authenticator.",
-    );
+    throw Error("Wallet access requires a verified email and authenticator.");
   const { data, error } = await client
     .from("kora_vaults")
     .select("payload,revision")
@@ -142,7 +160,47 @@ export async function upload(blob) {
   return name;
 }
 export async function removeFile(name) {
-  await client.storage.from("kora-receipts").remove([name]);
+  const { error } = await client.storage.from("kora-receipts").remove([name]);
+  if (error)
+    throw Error(
+      "Some stored receipt images could not be removed. Contact support before treating the deletion as complete.",
+    );
+}
+export async function receiptBlob(name) {
+  const { data, error } = await client.storage
+    .from("kora-receipts")
+    .download(name);
+  if (error)
+    throw Error("Could not back up a receipt. Deletion has not started.");
+  return data;
+}
+export async function deleteOwnAccount() {
+  if (!user) throw Error("Sign in again before deleting your account.");
+  while (true) {
+    const { data, error } = await client.storage
+      .from("kora-receipts")
+      .list(user.id, { limit: 100 });
+    if (error)
+      throw Error("Could not list receipt files. Account deletion stopped.");
+    if (!data.length) break;
+    const files = data
+      .filter((file) => file.id)
+      .map((file) => user.id + "/" + file.name);
+    if (!files.length)
+      throw Error(
+        "Unexpected receipt folder. Contact support before deleting this account.",
+      );
+    const removed = await client.storage.from("kora-receipts").remove(files);
+    if (removed.error)
+      throw Error("Could not remove receipt files. Account deletion stopped.");
+  }
+  const { error } = await client.rpc("zoro_delete_own_account");
+  if (error)
+    throw Error(
+      "Could not delete this account. Contact support. Some receipt files may already have been removed.",
+    );
+  await client.auth.signOut({ scope: "local" });
+  user = null;
 }
 export async function receiptUrl(name) {
   const { data, error } = await client.storage

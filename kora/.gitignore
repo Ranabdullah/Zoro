@@ -7,3 +7,4 @@ dist/reports.js
 dist/fonts/
 .openai/
 *.zip
+tmp/

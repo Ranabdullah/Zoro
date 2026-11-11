@@ -36,8 +36,18 @@ test("private vault and receipt policies enforce owner access and save revisions
   await db.exec(
     await readFile(new URL("../supabase/schema.sql", import.meta.url), "utf8"),
   );
-  await db.exec(await readFile(new URL("../supabase/access-hardening.sql", import.meta.url), "utf8"));
-  await db.exec(await readFile(new URL("../supabase/session-security.sql", import.meta.url), "utf8"));
+  await db.exec(
+    await readFile(
+      new URL("../supabase/access-hardening.sql", import.meta.url),
+      "utf8",
+    ),
+  );
+  await db.exec(
+    await readFile(
+      new URL("../supabase/session-security.sql", import.meta.url),
+      "utf8",
+    ),
+  );
   for (const [id, email, verified] of [
     [alice, "alice@example.invalid", true],
     [bob, "bob@example.invalid", true],
@@ -53,15 +63,23 @@ test("private vault and receipt policies enforce owner access and save revisions
       await db.query("insert into kora_private.allowed_emails values($1)", [
         email,
       ]);
-    await db.query("insert into auth.sessions(id,user_id,user_agent) values($1,$1,$2)", [id, "Test browser"]);
+    await db.query(
+      "insert into auth.sessions(id,user_id,user_agent) values($1,$1,$2)",
+      [id, "Test browser"],
+    );
   }
   const acting = async (role, id, fn, aal = "aal2") => {
     await db.exec("set role " + role);
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [
       id || "",
     ]);
-    await db.query("select set_config('request.jwt.claim.aal',$1,false)", [aal]);
-    await db.query("select set_config('request.jwt.claim.session_id',$1,false)", [id || ""]);
+    await db.query("select set_config('request.jwt.claim.aal',$1,false)", [
+      aal,
+    ]);
+    await db.query(
+      "select set_config('request.jwt.claim.session_id',$1,false)",
+      [id || ""],
+    );
     try {
       return await fn();
     } finally {
@@ -74,40 +92,105 @@ test("private vault and receipt policies enforce owner access and save revisions
       JSON.stringify(vault),
     ]);
   try {
-    await t.test("verified users only see their own sessions, and revoked sessions lose wallet access", async () => {
-      const id = "55555555-5555-4555-8555-555555555555";
-      await db.query("insert into auth.sessions(id,user_id,user_agent) values($1,$2,$3)", [id, alice, "Other browser"]);
-      await acting("authenticated", alice, async () => {
-        const { rows } = await db.query("select * from public.kora_sessions()");
-        assert.equal(rows.length, 2);
-        assert.equal(rows.filter(row => row.is_current).length, 1);
-        await db.query("select set_config('request.jwt.claim.session_id',$1,false)", [bob]);
-        await assert.rejects(() => save(0), /Access denied/);
-        await db.query("select set_config('request.jwt.claim.session_id',$1,false)", [id]);
-        assert.equal((await db.query("select public.kora_allowed() as allowed")).rows[0].allowed, true);
-      });
-      await db.query("delete from auth.sessions where id=$1", [id]);
-      await acting("authenticated", alice, async () => {
-        await db.query("select set_config('request.jwt.claim.session_id',$1,false)", [id]);
-        await assert.rejects(() => save(0), /Access denied/);
-      });
-    });
-    await t.test("signup hook rejects strangers and is callable only by Auth", async () => {
-      const hook = email => db.query("select public.kora_before_signup($1) as result", [JSON.stringify({user:{email}})]);
-      await acting("supabase_auth_admin", null, async () => {
-        assert.deepEqual((await hook("ALICE@example.invalid")).rows[0].result, {});
-        assert.equal((await hook("outsider@example.invalid")).rows[0].result.error.http_code, 403);
-      });
-      await acting("authenticated", alice, () => assert.rejects(() => hook("alice@example.invalid"), /permission denied/));
-    });
-    await t.test("a stolen password alone cannot read or write wallet data or receipts", () =>
-      acting("authenticated", alice, async () => {
-        assert.equal((await db.query("select public.kora_invited() as invited")).rows[0].invited, true);
-        assert.equal((await db.query("select public.kora_allowed() as allowed")).rows[0].allowed, false);
-        assert.equal((await db.query("select * from public.kora_vaults")).rows.length, 0);
-        await assert.rejects(() => save(0), /Access denied/);
-        await assert.rejects(() => db.query("insert into storage.objects(bucket_id,name) values('kora-receipts',$1)", [alice + "/photo.jpg"]), /row-level security/);
-      }, "aal1"));
+    await t.test(
+      "verified users only see their own sessions, and revoked sessions lose wallet access",
+      async () => {
+        const id = "55555555-5555-4555-8555-555555555555";
+        await db.query(
+          "insert into auth.sessions(id,user_id,user_agent) values($1,$2,$3)",
+          [id, alice, "Other browser"],
+        );
+        await acting("authenticated", alice, async () => {
+          const { rows } = await db.query(
+            "select * from public.kora_sessions()",
+          );
+          assert.equal(rows.length, 2);
+          assert.equal(rows.filter((row) => row.is_current).length, 1);
+          await db.query(
+            "select set_config('request.jwt.claim.session_id',$1,false)",
+            [bob],
+          );
+          await assert.rejects(() => save(0), /Access denied/);
+          await db.query(
+            "select set_config('request.jwt.claim.session_id',$1,false)",
+            [id],
+          );
+          assert.equal(
+            (await db.query("select public.kora_allowed() as allowed")).rows[0]
+              .allowed,
+            true,
+          );
+        });
+        await db.query("delete from auth.sessions where id=$1", [id]);
+        await acting("authenticated", alice, async () => {
+          await db.query(
+            "select set_config('request.jwt.claim.session_id',$1,false)",
+            [id],
+          );
+          await assert.rejects(() => save(0), /Access denied/);
+        });
+      },
+    );
+    await t.test(
+      "signup hook rejects strangers and is callable only by Auth",
+      async () => {
+        const hook = (email) =>
+          db.query("select public.kora_before_signup($1) as result", [
+            JSON.stringify({ user: { email } }),
+          ]);
+        await acting("supabase_auth_admin", null, async () => {
+          assert.deepEqual(
+            (await hook("ALICE@example.invalid")).rows[0].result,
+            {},
+          );
+          assert.equal(
+            (await hook("outsider@example.invalid")).rows[0].result.error
+              .http_code,
+            403,
+          );
+        });
+        await acting("authenticated", alice, () =>
+          assert.rejects(
+            () => hook("alice@example.invalid"),
+            /permission denied/,
+          ),
+        );
+      },
+    );
+    await t.test(
+      "a stolen password alone cannot read or write wallet data or receipts",
+      () =>
+        acting(
+          "authenticated",
+          alice,
+          async () => {
+            assert.equal(
+              (await db.query("select public.kora_invited() as invited"))
+                .rows[0].invited,
+              true,
+            );
+            assert.equal(
+              (await db.query("select public.kora_allowed() as allowed"))
+                .rows[0].allowed,
+              false,
+            );
+            assert.equal(
+              (await db.query("select * from public.kora_vaults")).rows.length,
+              0,
+            );
+            await assert.rejects(() => save(0), /Access denied/);
+            await assert.rejects(
+              () =>
+                db.query(
+                  "insert into storage.objects(bucket_id,name) values('kora-receipts',$1)",
+                  [alice + "/photo.jpg"],
+                ),
+              /row-level security/,
+            );
+          },
+          "aal1",
+        ),
+    );
     await t.test("anonymous requests cannot read or save vaults", () =>
       acting("anon", null, async () => {
         await assert.rejects(
@@ -235,21 +318,109 @@ test("private vault and receipt policies enforce owner access and save revisions
           });
       },
     );
-    await t.test("public registration removes invitations while preserving verified owner access", async () => {
-      await db.exec(await readFile(new URL("../supabase/public-registration.sql", import.meta.url), "utf8"));
-      await acting("supabase_auth_admin", null, async () => {
-        const { rows } = await db.query("select public.kora_before_signup($1) as result", [JSON.stringify({user:{email:"new@example.invalid"}})]);
-        assert.deepEqual(rows[0].result, {});
-      });
-      await acting("authenticated", outsider, async () => {
-        assert.equal((await db.query("select * from public.kora_vaults")).rows.length, 0);
-        assert.equal((await save(0)).rows[0].revision, 1);
-        assert.deepEqual((await db.query("select user_id from public.kora_vaults")).rows.map(row => row.user_id), [outsider]);
-        await assert.rejects(() => db.query("insert into storage.objects(bucket_id,name) values('kora-receipts',$1)", [alice + "/forged.jpg"]), /row-level security/);
-      });
-      await acting("authenticated", unverified, () => assert.rejects(() => save(0), /Access denied/));
-      await acting("authenticated", outsider, () => assert.rejects(() => save(1), /Access denied/), "aal1");
-    });
+    await t.test(
+      "public registration removes invitations while preserving verified owner access",
+      async () => {
+        await db.exec(
+          await readFile(
+            new URL("../supabase/public-registration.sql", import.meta.url),
+            "utf8",
+          ),
+        );
+        await acting("supabase_auth_admin", null, async () => {
+          const { rows } = await db.query(
+            "select public.kora_before_signup($1) as result",
+            [JSON.stringify({ user: { email: "new@example.invalid" } })],
+          );
+          assert.deepEqual(rows[0].result, {});
+        });
+        await acting("authenticated", outsider, async () => {
+          assert.equal(
+            (await db.query("select * from public.kora_vaults")).rows.length,
+            0,
+          );
+          assert.equal((await save(0)).rows[0].revision, 1);
+          assert.deepEqual(
+            (await db.query("select user_id from public.kora_vaults")).rows.map(
+              (row) => row.user_id,
+            ),
+            [outsider],
+          );
+          await assert.rejects(
+            () =>
+              db.query(
+                "insert into storage.objects(bucket_id,name) values('kora-receipts',$1)",
+                [alice + "/forged.jpg"],
+              ),
+            /row-level security/,
+          );
+        });
+        await acting("authenticated", unverified, () =>
+          assert.rejects(() => save(0), /Access denied/),
+        );
+        await acting(
+          "authenticated",
+          outsider,
+          () => assert.rejects(() => save(1), /Access denied/),
+          "aal1",
+        );
+      },
+    );
+    await t.test(
+      "account removal requires MFA, clears only the owner and requires receipt cleanup",
+      async () => {
+        await db.exec(
+          await readFile(
+            new URL("../supabase/delete-account.sql", import.meta.url),
+            "utf8",
+          ),
+        );
+        await acting("anon", null, () =>
+          assert.rejects(
+            () => db.query("select public.zoro_delete_own_account()"),
+            /permission denied/,
+          ),
+        );
+        await acting(
+          "authenticated",
+          outsider,
+          () =>
+            assert.rejects(
+              () => db.query("select public.zoro_delete_own_account()"),
+              /Verified sign-in required/,
+            ),
+          "aal1",
+        );
+        await acting("authenticated", alice, () =>
+          assert.rejects(
+            () => db.query("select public.zoro_delete_own_account()"),
+            /Remove receipt objects/,
+          ),
+        );
+        await acting("authenticated", outsider, () =>
+          db.query("select public.zoro_delete_own_account()"),
+        );
+        assert.equal(
+          (await db.query("select id from auth.users where id=$1", [outsider]))
+            .rows.length,
+          0,
+        );
+        assert.equal(
+          (
+            await db.query(
+              "select user_id from public.kora_vaults where user_id=$1",
+              [outsider],
+            )
+          ).rows.length,
+          0,
+        );
+        assert.equal(
+          (await db.query("select id from auth.users where id=$1", [alice]))
+            .rows.length,
+          1,
+        );
+      },
+    );
   } finally {
     await db.close();
   }

@@ -1,4 +1,5 @@
 import { reportRows } from "./report-data.js";
+import { validateBackup, removeData } from "./data-management.js";
 import * as cloud from "./cloud.js";
 import {
   cardAppearance,
@@ -243,7 +244,7 @@ function accountDetails(id, animate = true) {
   );
   $("#account-dialog-title").textContent = a.name;
   $("#account-detail").innerHTML =
-    `<div class="account-detail-top"><div class="account-hero ${animate ? "card-pop" : ""}">${card(a, { interactive: false })}</div><div class="account-facts"><div class="private-label">◈ ${onlineWallet ? "Only in your signed-in account" : "Local sample preview"}</div><dl><div><dt>Provider</dt><dd>${esc(a.provider)}</dd></div><div><dt>Location</dt><dd>${esc(accountLocation(a))}</dd></div><div><dt>Account type</dt><dd>${esc(a.kind)}</dd></div><div><dt>Card ending</dt><dd id="card-ending">${a.last4 ? '<button class="link" data-reveal-ending>Reveal last 4 digits</button>' : "Not added"}</dd></div></dl></div></div><div class="account-actions"><button class="primary" data-account-expense="${esc(id)}">＋ Add expense</button><button class="secondary" data-account-income="${esc(id)}">＋ Money in</button><button class="secondary" data-edit-account="${esc(id)}">✎ Edit card</button></div><div class="account-stat-grid"><div><small>Starting balance</small><b>${cash(a.opening, a.currency)}</b></div><div><small>Total spent</small><b>${cash(spent, a.currency)}</b></div><div><small>Total received</small><b>${cash(received, a.currency)}</b></div></div><div class="section-heading"><h2>Activity on this account</h2><span class="pill">${entries.length} entries</span></div><div class="account-history">${txRows(entries)}</div>${receipts.length ? `<div class="section-heading"><h2>Receipts for this account</h2></div><div class="account-receipts">${receipts.map((r) => `<button class="secondary" data-view-receipt="${esc(r.id)}">▤ ${esc(r.shop)} · ${esc(r.date)}</button>`).join("")}</div>` : ""}<p class="detail-note">Manually tracked. Recording a purchase changes this balance; it does not move money or connect to your bank.</p>`;
+    `<div class="account-detail-top"><div class="account-hero ${animate ? "card-pop" : ""}">${card(a, { interactive: false })}</div><div class="account-facts"><div class="private-label">◈ ${onlineWallet ? "Only in your signed-in account" : "Local sample preview"}</div><dl><div><dt>Provider</dt><dd>${esc(a.provider)}</dd></div><div><dt>Location</dt><dd>${esc(accountLocation(a))}</dd></div><div><dt>Account type</dt><dd>${esc(a.kind)}</dd></div><div><dt>Card ending</dt><dd id="card-ending">${a.last4 ? '<button class="link" data-reveal-ending>Reveal last 4 digits</button>' : "Not added"}</dd></div></dl></div></div><div class="account-actions"><button class="primary" data-account-expense="${esc(id)}">＋ Add expense</button><button class="secondary" data-account-income="${esc(id)}">＋ Money in</button><button class="secondary" data-edit-account="${esc(id)}">✎ Edit card</button><button class="secondary" data-remove-account="${esc(id)}">Remove account</button></div><div class="account-stat-grid"><div><small>Starting balance</small><b>${cash(a.opening, a.currency)}</b></div><div><small>Total spent</small><b>${cash(spent, a.currency)}</b></div><div><small>Total received</small><b>${cash(received, a.currency)}</b></div></div><div class="section-heading"><h2>Activity on this account</h2><span class="pill">${entries.length} entries</span></div><div class="account-history">${txRows(entries)}</div>${receipts.length ? `<div class="section-heading"><h2>Receipts for this account</h2></div><div class="account-receipts">${receipts.map((r) => `<button class="secondary" data-view-receipt="${esc(r.id)}">▤ ${esc(r.shop)} · ${esc(r.date)}</button>`).join("")}</div>` : ""}<p class="detail-note">Manually tracked. Recording a purchase changes this balance; it does not move money or connect to your bank.</p>`;
   if (!$("#account-dialog").open) $("#account-dialog").showModal();
 }
 function txRows(entries) {
@@ -321,19 +322,78 @@ const previewTips = {
   Home: "Compare the sample balances, income and spending. Try adding a pretend expense.",
   Accounts: "Open a sample card to see its balance, transactions and currency.",
   Activity: "Browse the sample transactions or search for a shop.",
-  Receipts: "Try adding a sample photo and note to see how receipts are stored.",
-  Debts: "See what you owe and what is owed to you. Try marking a sample debt as paid.",
-  Settings: "Open Help to revisit the walkthrough or try hiding balances with the eye button.",
+  Receipts:
+    "Try adding a sample photo and note to see how receipts are stored.",
+  Debts:
+    "See what you owe and what is owed to you. Try marking a sample debt as paid.",
+  Settings:
+    "Open Help to revisit the walkthrough or try hiding balances with the eye button.",
 };
 const previewTabs = [...document.querySelectorAll(".preview-tabs [role=tab]")];
 const tourSteps = [
-  { page: "Home", title: "Welcome to Zoro", description: "Track money across accounts and currencies, record spending, and keep receipts and debts in one place. This sample wallet lets you try it all before creating an account." },
-  { page: "Home", title: "See where your money stands", description: "Overview brings your balances, monthly spending and income together.", controls: [["Add expense", "Record a purchase against the account you used."], ["Add account", "Add a card, bank account or cash balance."]] },
-  { page: "Accounts", title: "Manage your accounts", description: "Keep accounts in their own currencies and see estimated euro totals.", controls: [["Open a card", "See its balance and transactions, or edit the card."], ["Add money received", "Record income against an account."]] },
-  { page: "Activity", title: "Review your transactions", description: "Find the money you recorded coming in and going out.", controls: [["Search", "Find entries by shop or note."], ["Delete", "Remove a mistaken entry and update the account balance."]] },
-  { page: "Receipts", title: "Keep your receipts together", description: "Save a picture and a note for a purchase.", controls: [["Add receipt", "Choose a photo or use your phone camera."]] },
-  { page: "Debts", title: "Track what is owed", description: "Keep track of money you owe and money others owe you.", controls: [["Add debt", "Record who owes what."], ["Mark settled", "Mark a debt as paid."]] },
-  { page: "Settings", title: "Make Zoro yours", description: "You can try the sample wallet freely. When you’re ready, create an account to start with your own empty wallet.", controls: [["Settings → Help", "Find this guide again."], ["Create an account", "Set up a private wallet with your email and authenticator."]] },
+  {
+    page: "Home",
+    title: "Welcome to Zoro",
+    description:
+      "Track money across accounts and currencies, record spending, and keep receipts and debts in one place. This sample wallet lets you try it all before creating an account.",
+  },
+  {
+    page: "Home",
+    title: "See where your money stands",
+    description:
+      "Overview brings your balances, monthly spending and income together.",
+    controls: [
+      ["Add expense", "Record a purchase against the account you used."],
+      ["Add account", "Add a card, bank account or cash balance."],
+    ],
+  },
+  {
+    page: "Accounts",
+    title: "Manage your accounts",
+    description:
+      "Keep accounts in their own currencies and see estimated euro totals.",
+    controls: [
+      ["Open a card", "See its balance and transactions, or edit the card."],
+      ["Add money received", "Record income against an account."],
+    ],
+  },
+  {
+    page: "Activity",
+    title: "Review your transactions",
+    description: "Find the money you recorded coming in and going out.",
+    controls: [
+      ["Search", "Find entries by shop or note."],
+      ["Delete", "Remove a mistaken entry and update the account balance."],
+    ],
+  },
+  {
+    page: "Receipts",
+    title: "Keep your receipts together",
+    description: "Save a picture and a note for a purchase.",
+    controls: [["Add receipt", "Choose a photo or use your phone camera."]],
+  },
+  {
+    page: "Debts",
+    title: "Track what is owed",
+    description: "Keep track of money you owe and money others owe you.",
+    controls: [
+      ["Add debt", "Record who owes what."],
+      ["Mark settled", "Mark a debt as paid."],
+    ],
+  },
+  {
+    page: "Settings",
+    title: "Make Zoro yours",
+    description:
+      "You can try the sample wallet freely. When you’re ready, create an account to start with your own empty wallet.",
+    controls: [
+      ["Settings → Help", "Find this guide again."],
+      [
+        "Create an account",
+        "Set up a private wallet with your email and authenticator.",
+      ],
+    ],
+  },
 ];
 let tourIndex = 0;
 const tourDialog = $("#wallet-tour");
@@ -345,15 +405,19 @@ function showTourStep(index) {
   $("#tour-progress").textContent = `Step ${index + 1} of ${tourSteps.length}`;
   $("#tour-title").textContent = step.title;
   $("#tour-description").textContent = step.description;
-  $("#tour-controls").innerHTML = (step.controls || []).map(([label, tip]) =>
-    `<div><dt>${esc(label)}</dt><dd>${esc(tip)}</dd></div>`).join("");
+  $("#tour-controls").innerHTML = (step.controls || [])
+    .map(
+      ([label, tip]) => `<div><dt>${esc(label)}</dt><dd>${esc(tip)}</dd></div>`,
+    )
+    .join("");
   const back = tourDialog.querySelector('[data-action="previous-tour"]');
   back.hidden = index === 0;
   const next = tourDialog.querySelector('[data-action="next-tour"]');
   next.textContent = index === tourSteps.length - 1 ? "Finish tour" : "Next";
   if (!tourDialog.open) tourDialog.showModal();
   next.focus({ preventScroll: true });
-  if (index > 0) $("#content").scrollIntoView({ block: "start", behavior: "instant" });
+  if (index > 0)
+    $("#content").scrollIntoView({ block: "start", behavior: "instant" });
   else window.scrollTo({ top: 0, behavior: "instant" });
 }
 tourDialog.addEventListener("close", () => {
@@ -364,13 +428,21 @@ tourDialog.addEventListener("close", () => {
     $('[data-action="start-tour"]').focus({ preventScroll: true });
   }
 });
-$(".preview-tabs").addEventListener("keydown", event => {
+$(".preview-tabs").addEventListener("keydown", (event) => {
   const index = previewTabs.indexOf(event.target);
   if (index < 0) return;
-  const positions = { ArrowLeft: index - 1, ArrowRight: index + 1, Home: 0, End: previewTabs.length - 1 };
+  const positions = {
+    ArrowLeft: index - 1,
+    ArrowRight: index + 1,
+    Home: 0,
+    End: previewTabs.length - 1,
+  };
   if (!Object.hasOwn(positions, event.key)) return;
   event.preventDefault();
-  const next = previewTabs[(positions[event.key] + previewTabs.length) % previewTabs.length];
+  const next =
+    previewTabs[
+      (positions[event.key] + previewTabs.length) % previewTabs.length
+    ];
   next.click();
   next.focus();
 });
@@ -447,51 +519,91 @@ function render() {
       state.debts
         .map(
           (d) =>
-            `<div class="debt-row"><span class="tx-icon">${d.paid ? "✓" : "⇄"}</span><div><h3>${esc(d.name)}</h3><small>${esc(d.direction)} · ${d.paid ? "Settled" : esc(d.date)}${d.note ? " · " + esc(d.note) : ""}</small></div><strong>${cash(d.amount, d.currency)}</strong><button class="secondary" data-settle="${esc(d.id)}">${d.paid ? "Reopen" : "Mark settled"}</button></div>`,
+            `<div class="debt-row"><span class="tx-icon">${d.paid ? "✓" : "⇄"}</span><div><h3>${esc(d.name)}</h3><small>${esc(d.direction)} · ${d.paid ? "Settled" : esc(d.date)}${d.note ? " · " + esc(d.note) : ""}</small></div><strong>${cash(d.amount, d.currency)}</strong><button class="secondary" data-settle="${esc(d.id)}">${d.paid ? "Reopen" : "Mark settled"}</button><button class="link" data-remove-debt="${esc(d.id)}">Delete</button></div>`,
         )
         .join("") +
       '<p class="notice">Debt reminders are separate from account balances. Record the actual payment as an expense or money received.</p>';
   if (page === "Settings")
     html =
       heading("Make yourself at home.", "A few simple preferences.") +
-      `<div class="panel settings-box"><h2>Your personal space</h2><p>${onlineWallet ? "Signed in as " + esc(person?.email) + ". Records save online and refresh across your devices." : "This is a local design preview. Sample changes last until you reload. Create an account to start with an empty wallet."}</p><button class="secondary" data-action="refresh">Refresh my records</button> <button class="secondary" data-action="export">Download my records</button>${onlineWallet ? ' <button class="secondary" data-action="logout">Sign out</button>' : ""}<hr><h2>Reports</h2><button class="secondary" data-go="Reports">Excel and PDF reports</button><hr><h2>Help</h2><button class="secondary" data-action="help">Open wallet tutorial</button>${onlineWallet ? '<hr><h2>Account security</h2><p>New browser sessions require your password and authenticator code.</p><button class="secondary" data-action="password">Change password</button> <button class="secondary" data-action="sessions">Signed-in browsers</button>' : ""}<hr><h2>Private by design</h2><p>Use account nicknames and optional last four digits only. Never enter your PIN, CVV, password, or full card number. Receipts can contain personal information: check them before uploading.</p><h2>Exchange rates</h2><p>Euro amounts use the latest available Frankfurter reference rates. Rates can be delayed; each foreign account shows its rate date. These are estimates, excluding fees. Original balances never change with exchange rates.</p><h2>Need to correct a purchase?</h2><p>Delete it from Activity and add it again. Your account balance updates automatically.</p></div>`;
-  if (page === "Reports") html = heading("Financial reports", "Download your recorded amounts as Excel or PDF.") +
-    '<form id="report-form" class="panel"><div class="report-filters">' +
-    field("From date", "from", "date") + field("To date", "to", "date") +
-    '<label for="report-account">Account</label><select name="account" id="report-account"><option value="">All accounts</option>' +
-    state.accounts.map(a => '<option value="' + esc(a.id) + '">' + esc(a.name) + ' · ' + esc(a.currency) + '</option>').join('') +
-    '</select><label for="report-scope">Include</label><select name="scope" id="report-scope"><option value="all">All transactions</option><option value="receipts">Expenses with receipts</option></select></div>' +
-    '<p>Reports use recorded transaction amounts and original currencies. Receipt photos and unattached photos are excluded.</p>' +
-    '<div class="actions"><button class="primary" type="submit" name="format" value="xlsx">Download Excel</button><button class="secondary" type="submit" name="format" value="pdf">Download PDF</button></div><p id="report-error" role="alert"></p></form>';
+      `<div class="panel settings-box"><h2>Your personal space</h2><p>${onlineWallet ? "Signed in as " + esc(person?.email) + ". Records save online and refresh across your devices." : "This is a local design preview. Sample changes last until you reload. Create an account to start with an empty wallet."}</p><button class="secondary" data-action="refresh">Refresh my records</button> <button class="secondary" data-action="export">Download my records</button>${onlineWallet ? ' <button class="secondary" data-action="logout">Sign out</button>' : ""}<hr><h2>Data management</h2><button class="secondary" data-action="data-management">Backup, import or remove data</button><hr><h2>Reports</h2><button class="secondary" data-go="Reports">Excel and PDF reports</button><hr><h2>Help</h2><button class="secondary" data-action="help">Open wallet tutorial</button>${onlineWallet ? '<hr><h2>Account security</h2><p>New browser sessions require your password and authenticator code.</p><button class="secondary" data-action="password">Change password</button> <button class="secondary" data-action="sessions">Signed-in browsers</button>' : ""}<hr><h2>Private by design</h2><p>Use account nicknames and optional last four digits only. Never enter your PIN, CVV, password, or full card number. Receipts can contain personal information: check them before uploading.</p><h2>Exchange rates</h2><p>Euro amounts use the latest available Frankfurter reference rates. Rates can be delayed; each foreign account shows its rate date. These are estimates, excluding fees. Original balances never change with exchange rates.</p><h2>Need to correct a purchase?</h2><p>Delete it from Activity and add it again. Your account balance updates automatically.</p></div>`;
+  if (page === "Reports")
+    html =
+      heading(
+        "Financial reports",
+        "Download your recorded amounts as Excel or PDF.",
+      ) +
+      '<form id="report-form" class="panel"><div class="report-filters">' +
+      field("From date", "from", "date") +
+      field("To date", "to", "date") +
+      '<label for="report-account">Account</label><select name="account" id="report-account"><option value="">All accounts</option>' +
+      state.accounts
+        .map(
+          (a) =>
+            '<option value="' +
+            esc(a.id) +
+            '">' +
+            esc(a.name) +
+            " · " +
+            esc(a.currency) +
+            "</option>",
+        )
+        .join("") +
+      '</select><label for="report-scope">Include</label><select name="scope" id="report-scope"><option value="all">All transactions</option><option value="receipts">Expenses with receipts</option></select></div>' +
+      "<p>Reports use recorded transaction amounts and original currencies. Receipt photos and unattached photos are excluded.</p>" +
+      '<div class="actions"><button class="primary" type="submit" name="format" value="xlsx">Download Excel</button><button class="secondary" type="submit" name="format" value="pdf">Download PDF</button></div><p id="report-error" role="alert"></p></form>';
   $("#content").innerHTML = html;
   if (page === "Receipts") loadReceiptImages();
 }
-document.addEventListener("submit", async event => {
+document.addEventListener("submit", async (event) => {
   if (event.target.id !== "report-form") return;
   event.preventDefault();
   const form = event.target;
   const filters = Object.fromEntries(new FormData(form));
   const format = event.submitter?.value || "xlsx";
   const buttons = [...form.querySelectorAll("button")];
-  buttons.forEach(button => button.disabled = true);
+  buttons.forEach((button) => (button.disabled = true));
   try {
     const rows = reportRows(state, filters);
-    if (!rows.length) throw Error("No matching transactions. Add an expense with its receipt or change the filters.");
-    const period = (filters.from || "All dates") + " to " + (filters.to || "present");
-    const label = period + " | Generated " + new Date().toISOString().slice(0,10);
+    if (!rows.length)
+      throw Error(
+        "No matching transactions. Add an expense with its receipt or change the filters.",
+      );
+    const period =
+      (filters.from || "All dates") + " to " + (filters.to || "present");
+    const label =
+      period + " | Generated " + new Date().toISOString().slice(0, 10);
     const reports = await import("./reports.js");
-    const data = format === "pdf" ? await reports.pdfReport(rows, label) : await reports.excelReport(rows, label);
-    const blob = new Blob([data], {type: format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const data =
+      format === "pdf"
+        ? await reports.pdfReport(rows, label)
+        : await reports.excelReport(rows, label);
+    const blob = new Blob([data], {
+      type:
+        format === "pdf"
+          ? "application/pdf"
+          : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "Zoro-" + (filters.scope === "receipts" ? "Receipted-Expenses" : "Financial-Report") + "-" + (filters.from || "All-Dates") + "-to-" + (filters.to || today()) + "." + format;
+    link.download =
+      "Zoro-" +
+      (filters.scope === "receipts"
+        ? "Receipted-Expenses"
+        : "Financial-Report") +
+      "-" +
+      (filters.from || "All-Dates") +
+      "-to-" +
+      (filters.to || today()) +
+      "." +
+      format;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     $("#report-error").textContent = error.message;
   } finally {
-    buttons.forEach(button => button.disabled = false);
+    buttons.forEach((button) => (button.disabled = false));
   }
 });
 function field(label, name, type = "text", extra = "") {
@@ -843,18 +955,275 @@ function settingsDialog(title, html) {
   $("#settings-dialog-content").innerHTML = html;
   if (!$("#settings-dialog").open) $("#settings-dialog").showModal();
 }
+function downloadFile(data, name, type) {
+  const url = URL.createObjectURL(new Blob([data], { type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+function blobDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(Error("Could not read receipt image."));
+    reader.readAsDataURL(blob);
+  });
+}
+async function backupWallet() {
+  const copy = structuredClone(state);
+  delete copy.__revision;
+  for (const receipt of copy.receipts) {
+    if (onlineWallet)
+      receipt.image = await blobDataUrl(await cloud.receiptBlob(receipt.path));
+    delete receipt.path;
+  }
+  const reports = await import("./reports.js");
+  const data = await reports.backupExcel(copy);
+  downloadFile(
+    data,
+    "Zoro-Full-Wallet-Backup-" + today() + ".xlsx",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  );
+}
+let pendingRemoval = null;
+function askRemove(section, id) {
+  pendingRemoval = { section, id, revision: state.__revision };
+  const label = id
+    ? "this record"
+    : section === "identity"
+      ? "your account permanently"
+      : section === "all"
+        ? "all wallet data"
+        : "all " + section;
+  settingsDialog(
+    "Remove " + label,
+    "<p>Download a full Excel backup before removing " +
+      esc(label) +
+      ". You can restore it later from Settings → Data management.</p>" +
+      (section === "accounts"
+        ? "<p>Account removal also removes its transactions. Receipt photos remain in Receipts.</p>"
+        : "") +
+      '<button class="primary" data-action="backup-then-remove">Download backup, then review deletion</button>' +
+      '<button class="secondary" data-action="review-remove">Review without backup</button>' +
+      '<p id="data-error" role="alert"></p>',
+  );
+}
+async function reviewRemoval(withBackup) {
+  if (!pendingRemoval) return;
+  busy = true;
+  try {
+    if (withBackup) await backupWallet();
+    const label = pendingRemoval.id
+      ? "this record"
+      : pendingRemoval.section === "identity"
+        ? "your sign-in account and ALL wallet data permanently"
+        : pendingRemoval.section === "all"
+          ? "ALL wallet data"
+          : "all " + pendingRemoval.section;
+    settingsDialog(
+      "Confirm removal",
+      "<p>" +
+        esc(
+          withBackup
+            ? "Wait for the backup download to finish and keep it safe. "
+            : "",
+        ) +
+        "Type DELETE to remove " +
+        esc(label) +
+        ".</p>" +
+        '<label for="delete-confirm">Confirmation</label><input id="delete-confirm" autocomplete="off" placeholder="DELETE">' +
+        '<button class="primary submit" data-action="confirm-remove">Delete selected data</button><p id="data-error" role="alert"></p>',
+    );
+  } catch (error) {
+    $("#data-error").textContent = error.message;
+  } finally {
+    busy = false;
+  }
+}
+async function confirmRemoval() {
+  if ($("#delete-confirm").value !== "DELETE" || !pendingRemoval) return;
+  busy = true;
+  try {
+    if (pendingRemoval.revision !== state.__revision)
+      throw Error(
+        "Your wallet changed. Close this dialog and review deletion again.",
+      );
+    const next = removeData(
+      state,
+      pendingRemoval.section === "identity" ? "all" : pendingRemoval.section,
+      pendingRemoval.id,
+    );
+    const retained = new Set(next.receipts.map((r) => r.id));
+    const files = state.receipts
+      .filter((r) => !retained.has(r.id) && r.path)
+      .map((r) => r.path);
+    if (pendingRemoval.section === "identity") {
+      await cloud.deleteOwnAccount();
+      pendingRemoval = null;
+      person = null;
+      state = null;
+      onlineWallet = false;
+      $("#settings-dialog").close();
+      showDemo();
+      toast("Account and wallet deleted.");
+      return;
+    }
+    await commit(next);
+    for (const path of files) await cloud.removeFile(path);
+    pendingRemoval = null;
+    $("#settings-dialog").close();
+    $("#account-dialog").close();
+    toast("Selected data removed.");
+  } catch (error) {
+    $("#data-error").textContent = error.message;
+  } finally {
+    busy = false;
+  }
+}
+function showDataManagement() {
+  settingsDialog(
+    "Data management",
+    "<h3>Back up your wallet</h3><p>A full Excel backup includes accounts, transactions, debts and receipt images. Keep the downloaded file private.</p>" +
+      '<button class="primary" data-action="backup-wallet">Download full Excel backup</button>' +
+      '<h3>Import Excel</h3><form id="import-form"><label for="import-kind">Import type</label><select id="import-kind" name="kind"><option value="backup">Restore a full Zoro backup</option><option value="report">Merge a Zoro transaction report</option></select>' +
+      '<label for="import-file">Excel file (.xlsx, up to 25 MB)</label><input id="import-file" name="file" type="file" accept=".xlsx" required>' +
+      "<p>Restoring a backup replaces the current wallet. Reports merge new transaction references. New report accounts start at zero. Report imports exclude receipt photos.</p>" +
+      '<button class="secondary submit">Review Excel import</button></form>' +
+      '<h3>Remove data</h3><label for="delete-section">Section</label><select id="delete-section"><option value="entries">Activity / transactions</option><option value="accounts">Accounts and their transactions</option><option value="receipts">Receipt images and notes</option><option value="debts">Debts</option><option value="all">All wallet data</option>' +
+      (onlineWallet
+        ? '<option value="identity">Delete my sign-in account and all wallet data</option>'
+        : "") +
+      "</select>" +
+      '<button class="secondary submit" data-action="remove-section">Review deletion</button><p>All wallet data clears your records across devices. Your sign-in account remains available.</p><p id="data-error" role="alert"></p>',
+  );
+}
+let pendingImport = null;
+document.addEventListener("submit", async (event) => {
+  if (event.target.id !== "import-form") return;
+  event.preventDefault();
+  if (busy) return;
+  busy = true;
+  try {
+    const values = new FormData(event.target),
+      file = values.get("file");
+    if (!file || !file.size || file.size > 25 * 1024 * 1024)
+      throw Error("Choose an Excel file smaller than 25 MB.");
+    const reports = await import("./reports.js"),
+      buffer = await file.arrayBuffer();
+    if (values.get("kind") === "backup") {
+      const restored = validateBackup(await reports.readBackup(buffer));
+      pendingImport = {
+        state: restored,
+        restore: true,
+        revision: state.__revision,
+      };
+    } else {
+      const imported = await reports.importTransactions(buffer, state);
+      validateBackup({ ...imported.state, receipts: [] });
+      pendingImport = {
+        state: imported.state,
+        restore: false,
+        added: imported.added,
+        revision: state.__revision,
+      };
+    }
+    settingsDialog(
+      "Confirm Excel import",
+      "<p>" +
+        esc(
+          pendingImport.restore
+            ? "This replaces your current wallet with " +
+                pendingImport.state.accounts.length +
+                " accounts and " +
+                pendingImport.state.entries.length +
+                " transactions."
+            : "This adds " +
+                pendingImport.added +
+                " new transactions. Existing transaction references are skipped.",
+        ) +
+        '</p><button class="primary" data-action="backup-import">Back up current wallet, then import</button><button class="secondary" data-action="confirm-import">Import without backup</button><p id="data-error" role="alert"></p>',
+    );
+  } catch (error) {
+    $("#data-error").textContent = error.message;
+  } finally {
+    busy = false;
+  }
+});
+async function completeImport(withBackup) {
+  if (!pendingImport) return;
+  busy = true;
+  const uploaded = [];
+  try {
+    if (pendingImport.revision !== state.__revision)
+      throw Error(
+        "Your wallet changed. Close this dialog and import the file again.",
+      );
+    if (withBackup) await backupWallet();
+    const next = structuredClone(pendingImport.state);
+    if (pendingImport.restore && onlineWallet) {
+      for (const receipt of next.receipts) {
+        const binary = atob(receipt.image.split(",")[1]);
+        const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+        const path = await cloud.upload(
+          new Blob([bytes], { type: "image/jpeg" }),
+        );
+        uploaded.push(path);
+        receipt.path = path;
+        delete receipt.image;
+      }
+    }
+    const oldPaths = pendingImport.restore
+      ? state.receipts.filter((r) => r.path).map((r) => r.path)
+      : [];
+    next.__revision = state.__revision;
+    await commit(next);
+    // Save succeeds before old receipt objects are cleaned up.
+    pendingImport = null;
+    for (const path of oldPaths) await cloud.removeFile(path);
+    $("#settings-dialog").close();
+    toast("Excel import completed.");
+  } catch (error) {
+    if (pendingImport)
+      for (const path of uploaded) await cloud.removeFile(path).catch(() => {});
+    $("#data-error").textContent = error.message;
+  } finally {
+    busy = false;
+  }
+}
 function showTutorial(first = false) {
-  settingsDialog(first ? "Welcome to Zoro" : "Wallet tutorial",
+  settingsDialog(
+    first ? "Welcome to Zoro" : "Wallet tutorial",
     $("#wallet-guide").innerHTML +
-    '<button class="primary" data-action="close-help">Got it</button>');
+      '<button class="primary" data-action="close-help">Got it</button>',
+  );
 }
 function showPasswordForm() {
-  settingsDialog("Change password", '<form id="password-form">' +
-    field("Current password", "current-password", "password", 'required autocomplete="current-password"') +
-    field("New password", "new-password", "password", 'required minlength="12" maxlength="72" autocomplete="new-password"') +
-    field("Confirm new password", "confirm-password", "password", 'required autocomplete="new-password"') +
-    '<p role="alert" id="password-error"></p><button class="primary submit">Save password</button></form>');
-  $("#password-form").onsubmit = async event => {
+  settingsDialog(
+    "Change password",
+    '<form id="password-form">' +
+      field(
+        "Current password",
+        "current-password",
+        "password",
+        'required autocomplete="current-password"',
+      ) +
+      field(
+        "New password",
+        "new-password",
+        "password",
+        'required minlength="12" maxlength="72" autocomplete="new-password"',
+      ) +
+      field(
+        "Confirm new password",
+        "confirm-password",
+        "password",
+        'required autocomplete="new-password"',
+      ) +
+      '<p role="alert" id="password-error"></p><button class="primary submit">Save password</button></form>',
+  );
+  $("#password-form").onsubmit = async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     const submit = form.querySelector("button");
@@ -862,8 +1231,10 @@ function showPasswordForm() {
     const password = values.get("new-password");
     submit.disabled = true;
     try {
-      if (password !== values.get("confirm-password")) throw Error("The new passwords do not match.");
-      if (new TextEncoder().encode(password).length > 72) throw Error("Choose a shorter password.");
+      if (password !== values.get("confirm-password"))
+        throw Error("The new passwords do not match.");
+      if (new TextEncoder().encode(password).length > 72)
+        throw Error("Choose a shorter password.");
       await cloud.changePassword(values.get("current-password"), password);
       form.reset();
       $("#settings-dialog").close();
@@ -876,29 +1247,55 @@ function showPasswordForm() {
   };
 }
 function browserLabel(agent = "") {
-  const platform = agent.match(/iPhone|iPad|Android|Windows|Macintosh|Linux/i)?.[0] || "Unknown device";
-  const browser = /Edg\//.test(agent) ? "Edge" : /Firefox|FxiOS/.test(agent) ? "Firefox"
-    : /Chrome|CriOS/.test(agent) ? "Chrome" : /Safari/.test(agent) ? "Safari" : "Browser";
+  const platform =
+    agent.match(/iPhone|iPad|Android|Windows|Macintosh|Linux/i)?.[0] ||
+    "Unknown device";
+  const browser = /Edg\//.test(agent)
+    ? "Edge"
+    : /Firefox|FxiOS/.test(agent)
+      ? "Firefox"
+      : /Chrome|CriOS/.test(agent)
+        ? "Chrome"
+        : /Safari/.test(agent)
+          ? "Safari"
+          : "Browser";
   return browser + " · " + platform;
 }
 let newestOtherSession = null;
 async function checkNewSignIns(userId) {
   const sessions = await cloud.signedInSessions();
   if (person?.id !== userId || !state) return;
-  const newest = sessions.find(item => !item.is_current);
+  const newest = sessions.find((item) => !item.is_current);
   const timestamp = newest ? Date.parse(newest.started_at) : 0;
   if (newest && newestOtherSession !== null && timestamp > newestOtherSession)
-    toast("New sign-in on " + browserLabel(newest.browser_agent || "") + ". Review it in Settings → Signed-in browsers.");
+    toast(
+      "New sign-in on " +
+        browserLabel(newest.browser_agent || "") +
+        ". Review it in Settings → Signed-in browsers.",
+    );
   newestOtherSession = Math.max(newestOtherSession || 0, timestamp);
 }
 async function showSessions() {
   const sessions = await cloud.signedInSessions();
-  const rows = sessions.map(item => "<li><strong>" + esc(browserLabel(item.browser_agent || "")) +
-    (item.is_current ? " (this browser)" : "") + "</strong><br>Signed in " +
-    esc(new Date(item.started_at).toLocaleString()) + "</li>").join("");
-  settingsDialog("Signed-in browsers", "<ul>" + rows + "</ul>" +
-    '<p>Review browsers that completed authenticator verification.</p>' +
-    '<button class="secondary" data-action="logout-others">Sign out all other browsers</button>');
+  const rows = sessions
+    .map(
+      (item) =>
+        "<li><strong>" +
+        esc(browserLabel(item.browser_agent || "")) +
+        (item.is_current ? " (this browser)" : "") +
+        "</strong><br>Signed in " +
+        esc(new Date(item.started_at).toLocaleString()) +
+        "</li>",
+    )
+    .join("");
+  settingsDialog(
+    "Signed-in browsers",
+    "<ul>" +
+      rows +
+      "</ul>" +
+      "<p>Review browsers that completed authenticator verification.</p>" +
+      '<button class="secondary" data-action="logout-others">Sign out all other browsers</button>',
+  );
 }
 async function refresh(authenticated = onlineWallet) {
   if (authenticated) {
@@ -970,17 +1367,7 @@ document.addEventListener("click", async (event) => {
       return;
     }
     if (b.dataset.deleteEntry) {
-      if (
-        !confirm(
-          "Delete this entry? Its effect on the balance will be reversed.",
-        )
-      )
-        return;
-      await commit({
-        ...state,
-        entries: state.entries.filter((e) => e.id !== b.dataset.deleteEntry),
-      });
-      toast("Entry deleted. Balance updated.");
+      askRemove("entries", b.dataset.deleteEntry);
       return;
     }
     if (b.dataset.settle) {
@@ -993,13 +1380,16 @@ document.addEventListener("click", async (event) => {
       return;
     }
     if (b.dataset.deleteReceipt) {
-      if (!confirm("Delete this receipt photo?")) return;
-      const r = state.receipts.find((r) => r.id === b.dataset.deleteReceipt);
-      await commit({
-        ...state,
-        receipts: state.receipts.filter((x) => x.id !== r.id),
-      });
-      if (r.path) await cloud.removeFile(r.path);
+      askRemove("receipts", b.dataset.deleteReceipt);
+      return;
+    }
+    if (b.dataset.removeAccount) {
+      $("#account-dialog").close();
+      askRemove("accounts", b.dataset.removeAccount);
+      return;
+    }
+    if (b.dataset.removeDebt) {
+      askRemove("debts", b.dataset.removeDebt);
       return;
     }
     if (b.dataset.viewReceipt) {
@@ -1016,6 +1406,22 @@ document.addEventListener("click", async (event) => {
       return;
     }
     const action = b.dataset.action;
+    if (action === "data-management") showDataManagement();
+    if (action === "backup-wallet") {
+      busy = true;
+      try {
+        await backupWallet();
+        toast("Excel backup downloaded. Keep it private.");
+      } finally {
+        busy = false;
+      }
+    }
+    if (action === "remove-section") askRemove($("#delete-section").value);
+    if (action === "backup-then-remove") await reviewRemoval(true);
+    if (action === "review-remove") await reviewRemoval(false);
+    if (action === "confirm-remove") await confirmRemoval();
+    if (action === "backup-import") await completeImport(true);
+    if (action === "confirm-import") await completeImport(false);
     if (["expense", "income", "account", "receipt", "debt"].includes(action))
       openForm(action);
     if (action === "settings") {
@@ -1041,7 +1447,7 @@ document.addEventListener("click", async (event) => {
         url = URL.createObjectURL(blob),
         a = document.createElement("a");
       a.href = url;
-      a.download = `kora-records-${today()}.json`;
+      a.download = `Zoro-Records-${today()}.json`;
       a.click();
       URL.revokeObjectURL(url);
       toast(
@@ -1050,7 +1456,8 @@ document.addEventListener("click", async (event) => {
     }
     if (action === "help") showTutorial();
     if (action === "start-tour" && !onlineWallet && state) showTourStep(0);
-    if (action === "previous-tour" && tourIndex > 0) showTourStep(tourIndex - 1);
+    if (action === "previous-tour" && tourIndex > 0)
+      showTourStep(tourIndex - 1);
     if (action === "next-tour") {
       if (tourIndex + 1 < tourSteps.length) showTourStep(tourIndex + 1);
       else tourDialog.close();
@@ -1096,6 +1503,12 @@ $("#close").onclick = () => {
 $("#modal").addEventListener("cancel", (event) => {
   if (busy) event.preventDefault();
 });
+$("#settings-dialog").addEventListener("cancel", (event) => {
+  if (busy) event.preventDefault();
+});
+$("#settings-dialog .modal-head").addEventListener("submit", (event) => {
+  if (busy) event.preventDefault();
+});
 $("#privacy").onclick = () => {
   const hidden = document.body.classList.toggle("hidden-balances");
   $("#privacy").setAttribute(
@@ -1137,15 +1550,22 @@ function loginScreen(registering = false) {
     ? 'required minlength="12" maxlength="72" autocomplete="new-password"'
     : 'required autocomplete="current-password"';
   $("#content").innerHTML =
-    '<div class="login-wrap"><h1>Your private wallet</h1><div class="panel login-panel"><h2>' + title +
+    '<div class="login-wrap"><h1>Your private wallet</h1><div class="panel login-panel"><h2>' +
+    title +
     '</h2><p>Use your email address.</p><form id="login-form">' +
-    field("Email address", "email", "email", 'required autocomplete="username"') +
+    field(
+      "Email address",
+      "email",
+      "email",
+      'required autocomplete="username"',
+    ) +
     field("Password", "password", "password", passwordOptions) +
-    (registering ? '<small>Use at least 12 characters.</small>' : '') +
+    (registering ? "<small>Use at least 12 characters.</small>" : "") +
     '<p id="login-error" role="alert"></p><p id="login-status" role="status"></p><button class="primary submit">' +
-    (registering ? 'Create account' : 'Sign in') +
+    (registering ? "Create account" : "Sign in") +
     '</button></form><button id="auth-mode" class="secondary" type="button">' +
-    (registering ? 'Back to sign in' : 'Create an account') + '</button><button class="secondary" type="button" data-action="preview">Back to sample wallet</button></div></div>';
+    (registering ? "Back to sign in" : "Create an account") +
+    '</button><button class="secondary" type="button" data-action="preview">Back to sample wallet</button></div></div>';
   $("#auth-mode").onclick = () => loginScreen(!registering);
   $("#login-form").onsubmit = async (e) => {
     e.preventDefault();
@@ -1184,10 +1604,17 @@ async function openAuthenticatedWallet() {
   $("#content").innerHTML =
     '<div class="login-wrap"><h1>Your private wallet</h1><div class="panel login-panel">' +
     (factor.secret
-      ? '<h2>Set up your authenticator</h2><p>Add a time-based account named Zoro in your authenticator app. Enter this setup key there, then enter the six-digit code below.</p><p><code>' + esc(factor.secret) + '</code></p>'
-      : '<h2>Verify your sign-in</h2><p>Enter the six-digit code from your authenticator app.</p>') +
+      ? "<h2>Set up your authenticator</h2><p>Add a time-based account named Zoro in your authenticator app. Enter this setup key there, then enter the six-digit code below.</p><p><code>" +
+        esc(factor.secret) +
+        "</code></p>"
+      : "<h2>Verify your sign-in</h2><p>Enter the six-digit code from your authenticator app.</p>") +
     '<form id="mfa-form">' +
-    field("Authenticator code", "code", "text", 'required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"') +
+    field(
+      "Authenticator code",
+      "code",
+      "text",
+      'required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"',
+    ) +
     '<p id="mfa-error" role="alert"></p><button class="primary submit">Verify</button></form>' +
     '<button type="button" class="secondary" data-action="logout">Sign out</button></div></div>';
   $("#mfa-form").onsubmit = async (event) => {
@@ -1213,7 +1640,8 @@ async function init() {
       else showDemo();
     } catch (error) {
       loginScreen();
-      $("#login-error").textContent = error.message || "Could not load your account. Sign in again.";
+      $("#login-error").textContent =
+        error.message || "Could not load your account. Sign in again.";
     }
   } else {
     showDemo();
