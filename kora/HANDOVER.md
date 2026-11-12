@@ -1,5 +1,7 @@
 # Zoro handover
 
+Primary app: https://zoro-personal-wallet.pages.dev/ . Cloudflare project zoro-personal-wallet builds automatically from the private repository. Supabase Site URL and exact redirect include this new address. The previous kora-personal-wallet.pages.dev deployment remains available; both use the same managed backend.
+
 ## Daily use
 
 Open the app link and explore the fictional sample wallet. Choose Create an account, confirm your email and set up an authenticator. A real wallet starts empty and connects automatically to the managed cloud. Public confirmation email delivery requires the app owner to configure a verified SMTP sender.

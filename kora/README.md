@@ -1,5 +1,7 @@
 # Zoro
 
+Live app: https://zoro-personal-wallet.pages.dev/
+
 A personal finance app for Ireland and accounts back home. The product is Zoro; the source directory and existing database names retain kora for compatibility.
 
 Run locally with Node.js 22+: npm ci, npm run build, npm start. Open http://127.0.0.1:4173/. Without backend configuration, fictional preview records stay in memory and reset on reload.

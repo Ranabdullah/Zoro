@@ -1,5 +1,7 @@
 # Zoro release status - 12 November 2026
 
+Deployed to https://zoro-personal-wallet.pages.dev/ with the existing private backend and automatic Git builds. Public app, signup screen, cloud guide, setup SQL and response security headers checked at the new address. All 30 automated tests pass. The new origin is configured in Supabase's Site URL and allowed redirects.
+
 Implemented: sample app and tour; public signup UI; empty real wallets; verified email/password/TOTP; owner-scoped saving/sync; manual accounts/income/expenses/receipts/debts; regional currency names and estimates; card customization/uploads; Excel/PDF reports and receipt filters; full Excel backup/import; data/account deletion; password change and browser sessions; optional user-owned Supabase choice remembered with the central Zoro ID.
 
 Still pending; do not describe these as finished:
