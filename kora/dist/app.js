@@ -209,7 +209,10 @@ function card(
 ) {
   const look = cardAppearance(a);
   const image = safeCardImage(a.cardImage);
-  if (image) { look.ink = "#ffffff"; look.art = "#000000"; }
+  if (image) {
+    look.ink = "#ffffff";
+    look.art = "#000000";
+  }
   const tag = interactive ? "button" : "div";
   return `<${tag} class="bank-card wallet-card ${image ? "has-card-image" : ""} pattern-${look.pattern}" style="--card-bg:${look.colour};--card-ink:${look.ink};--card-art:${look.art};--card-index:${index}" ${interactive ? `data-account="${esc(a.id)}" aria-label="Open ${esc(a.name)} account details"` : ""}>
     ${image ? `<img class="card-custom-image" src="${image}" alt=""><span class="card-image-shade" aria-hidden="true"></span>` : '<span class="card-art" aria-hidden="true"></span>'}
@@ -221,7 +224,7 @@ function card(
 }
 function wallet() {
   if (!state.accounts.length)
-    return '<section class="wallet-empty panel"><div class="wallet-empty-icon">▣</div><h2>Your wallet starts here.</h2><p>Add your euro account, money back home, or a cash pocket.</p><button class="primary" data-action="account">＋ Add your first account</button></section>';
+    return '<section class="wallet-empty panel"><div class="wallet-empty-icon">▣</div><h2>Your wallet starts here.</h2><p>Add your euro account, money back home, or a cash pocket.</p><button class="primary" data-action="account">＋ Add your first account</button><button class="secondary" data-action="help">Show me the tutorial</button></section>';
   const visible = state.accounts.slice(0, 3).reverse();
   return `<section class="wallet-board"><div class="wallet-display"><div class="wallet-display-heading"><span>THE EVERYDAY WALLET</span><span>${state.accounts.length} accounts</span></div><div class="wallet-stack" style="--stack-count:${visible.length}">${visible.map((a, index) => card(a, { index })).join("")}<div class="wallet-pocket"><span>zoro<span class="pocket-dot">.</span></span><small>ALL YOUR WORLDS, TOGETHER</small></div></div><p class="wallet-hint">Tap a card to take a closer look <span>↗</span></p></div><div class="wallet-accounts"><div class="wallet-list-heading"><h3>In your wallet</h3><span>Local balances</span></div>${state.accounts
     .map((a) => {
@@ -408,8 +411,24 @@ function showTourStep(index) {
   render();
   $("#tour-progress").textContent = `Step ${index + 1} of ${tourSteps.length}`;
   $("#tour-title").textContent = step.title;
-  $("#tour-description").textContent = step.description;
-  $("#tour-controls").innerHTML = (step.controls || [])
+  $("#tour-description").textContent =
+    onlineWallet && index === 0
+      ? "Your wallet starts empty. Add accounts, record spending and income, and keep receipts in one place. Skip or replay this guide whenever you like."
+      : onlineWallet && index === tourSteps.length - 1
+        ? "Find help, reports, backups, security and optional cloud connection settings here."
+        : step.description;
+  $("#tour-controls").innerHTML = (
+    onlineWallet && index === tourSteps.length - 1
+      ? [
+          ["Help", "Replay this guide."],
+          ["Data management", "Download a full backup, import or remove data."],
+          [
+            "Cloud connection",
+            "Keep using Zoro cloud or connect your own project.",
+          ],
+        ]
+      : step.controls || []
+  )
     .map(
       ([label, tip]) => `<div><dt>${esc(label)}</dt><dd>${esc(tip)}</dd></div>`,
     )
@@ -530,7 +549,7 @@ function render() {
   if (page === "Settings")
     html =
       heading("Make yourself at home.", "A few simple preferences.") +
-      `<div class="panel settings-box"><h2>Your personal space</h2><p>${onlineWallet ? "Signed in as " + esc(person?.email) + ". Records save online and refresh across your devices." : "This is a local design preview. Sample changes last until you reload. Create an account to start with an empty wallet."}</p><button class="secondary" data-action="refresh">Refresh my records</button> <button class="secondary" data-action="export">Download my records</button>${onlineWallet ? ' <button class="secondary" data-action="logout">Sign out</button>' : ""}<hr><h2>Data management</h2><button class="secondary" data-action="data-management">Backup, import or remove data</button><hr><h2>Reports</h2><button class="secondary" data-go="Reports">Excel and PDF reports</button><hr><h2>Help</h2><button class="secondary" data-action="help">Open wallet tutorial</button>${onlineWallet ? '<hr><h2>Account security</h2><p>New browser sessions require your password and authenticator code.</p><button class="secondary" data-action="password">Change password</button> <button class="secondary" data-action="sessions">Signed-in browsers</button>' : ""}<hr><h2>Private by design</h2><p>Use account nicknames and optional last four digits only. Never enter your PIN, CVV, password, or full card number. Receipts can contain personal information: check them before uploading.</p><h2>Exchange rates</h2><p>Euro amounts use the latest available Frankfurter reference rates. Rates can be delayed; each foreign account shows its rate date. These are estimates, excluding fees. Original balances never change with exchange rates.</p><h2>Need to correct a purchase?</h2><p>Delete it from Activity and add it again. Your account balance updates automatically.</p></div>`;
+      `<div class="panel settings-box"><h2>Your personal space</h2><p>${onlineWallet ? "Signed in as " + esc(person?.email) + ". Records save online and refresh across your devices." : "This is a local design preview. Sample changes last until you reload. Create an account to start with an empty wallet."}</p><button class="secondary" data-action="refresh">Refresh my records</button> <button class="secondary" data-action="export">Download my records</button>${onlineWallet ? ' <button class="secondary" data-action="logout">Sign out</button>' : ""}<hr><h2>Cloud connection</h2><p>${onlineWallet ? (cloud.usingOwnBackend() ? "Connected to your own Supabase project: " + esc(cloud.backendHost()) : "Connected automatically to Zoro cloud.") : "Zoro cloud connects automatically after sign-in. You can also use a project you own."}</p><button class="secondary" data-action="backend-settings">Cloud connection settings</button><hr><h2>Data management</h2><button class="secondary" data-action="data-management">Backup, import or remove data</button><hr><h2>Reports</h2><button class="secondary" data-go="Reports">Excel and PDF reports</button><hr><h2>Help</h2><button class="secondary" data-action="help">Open wallet tutorial</button>${onlineWallet ? '<hr><h2>Account security</h2><p>New browser sessions require your password and authenticator code.</p><button class="secondary" data-action="password">Change password</button> <button class="secondary" data-action="sessions">Signed-in browsers</button>' : ""}<hr><h2>Private by design</h2><p>Use account nicknames and optional last four digits only. Never enter your PIN, CVV, password, or full card number. Receipts can contain personal information: check them before uploading.</p><h2>Exchange rates</h2><p>Euro amounts use the latest available Frankfurter reference rates. Rates can be delayed; each foreign account shows its rate date. These are estimates, excluding fees. Original balances never change with exchange rates.</p><h2>Need to correct a purchase?</h2><p>Delete it from Activity and add it again. Your account balance updates automatically.</p></div>`;
   if (page === "Reports")
     html =
       heading(
@@ -1035,6 +1054,9 @@ function askRemove(section, id) {
       (section === "accounts"
         ? "<p>Account removal also removes its transactions. Receipt photos remain in Receipts.</p>"
         : "") +
+      (section === "identity" && cloud.usingOwnBackend()
+        ? "<p>This deletes the sign-in and wallet in your own project and disconnects it. Your separate Zoro cloud identity and any old Zoro cloud records remain. To delete those too, return to Zoro cloud and delete that account separately.</p>"
+        : "") +
       '<button class="primary" data-action="backup-then-remove">Download backup, then review deletion</button>' +
       '<button class="secondary" data-action="review-remove">Review without backup</button>' +
       '<p id="data-error" role="alert"></p>',
@@ -1112,6 +1134,44 @@ async function confirmRemoval() {
     busy = false;
   }
 }
+function showBackendSettings() {
+  settingsDialog(
+    "Cloud connection",
+    `<p><strong>Zoro cloud connects automatically when you sign in.</strong> No Supabase account or key is needed for everyday use.</p>
+    <details><summary>Use a Supabase project I own</summary><ol>
+    <li>Create a dedicated project at <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer">Supabase</a>.</li>
+    <li><a href="setup.sql" download="Zoro-Backend-Setup.sql">Download Zoro setup SQL</a> and run it once in the new project's SQL Editor. Use a new, empty project.</li>
+    <li>Enable email confirmation, TOTP and your email sender. Set the Site URL and allowed redirect to <code>${esc(location.origin)}/</code>.</li>
+    <li>Download a <button class="link" data-action="backup-wallet">full Excel backup</button> before switching. Connect below, create or sign into your project login, then restore the backup in Settings.</li></ol>
+    <p>Your project choice is remembered with your Zoro ID after verified sign-in there. Other devices first sign into Zoro, then your own project. Passwords and authenticator secrets are never copied between projects. Existing data stays in the previous project until you remove it.</p>
+    ${onlineWallet && !cloud.usingOwnBackend() ? `<form id="backend-form"><label for="backend-url">Project URL</label><input id="backend-url" name="url" type="url" required placeholder="https://yourproject.supabase.co"><label for="backend-key">Publishable key</label><input id="backend-key" name="key" required autocomplete="off" placeholder="sb_publishable_…"><p>Only public connection details belong here. Never enter a database password or secret/service-role key.</p><button class="primary submit">Continue to my project sign-in</button></form>` : "<p>Sign into Zoro cloud to connect a different project.</p>"}
+    </details>${cloud.usingOwnBackend() ? '<p>This wallet uses your own backend. Returning to Zoro cloud leaves these records in your project and clears the remembered link.</p><button class="secondary" data-action="default-backend">Return to Zoro cloud</button>' : ""}<p id="data-error" role="alert"></p>`,
+  );
+}
+document.addEventListener("submit", async (event) => {
+  if (event.target.id !== "backend-form") return;
+  event.preventDefault();
+  if (busy) return;
+  busy = true;
+  try {
+    const values = new FormData(event.target);
+    person = await cloud.activateBackend(
+      { url: values.get("url"), key: values.get("key") },
+      true,
+    );
+    state = null;
+    onlineWallet = false;
+    $("#settings-dialog").close();
+    if (person) await openAuthenticatedWallet();
+    else loginScreen();
+  } catch (error) {
+    const el = $("#data-error");
+    if (el) el.textContent = error.message;
+    else toast(error.message);
+  } finally {
+    busy = false;
+  }
+});
 function showDataManagement() {
   settingsDialog(
     "Data management",
@@ -1222,12 +1282,9 @@ async function completeImport(withBackup) {
     busy = false;
   }
 }
-function showTutorial(first = false) {
-  settingsDialog(
-    first ? "Welcome to Zoro" : "Wallet tutorial",
-    $("#wallet-guide").innerHTML +
-      '<button class="primary" data-action="close-help">Got it</button>',
-  );
+function showTutorial() {
+  $("#settings-dialog").close();
+  showTourStep(0);
 }
 function showPasswordForm() {
   settingsDialog(
@@ -1343,7 +1400,9 @@ async function refresh(authenticated = onlineWallet) {
     const tutorialKey = "kora-tutorial:" + signedInId;
     if (!record && !localStorage.getItem(tutorialKey)) {
       localStorage.setItem(tutorialKey, "seen");
-      showTutorial(true);
+      toast(
+        "Your wallet starts empty. Open Settings → Help whenever you want a tutorial.",
+      );
     }
     return;
   }
@@ -1440,6 +1499,20 @@ document.addEventListener("click", async (event) => {
       draftCardImage = "";
       $("#f-card-image").value = "";
       updateCardPreview();
+    }
+    if (action === "backend-settings") showBackendSettings();
+    if (action === "default-backend") {
+      busy = true;
+      try {
+        person = await cloud.useDefaultBackend();
+        state = null;
+        onlineWallet = false;
+        $("#settings-dialog").close();
+        if (person) await openAuthenticatedWallet();
+        else loginScreen();
+      } finally {
+        busy = false;
+      }
     }
     if (action === "data-management") showDataManagement();
     if (action === "backup-wallet") {
@@ -1634,7 +1707,13 @@ function loginScreen(registering = false) {
   $("#content").innerHTML =
     '<div class="login-wrap"><h1>Your private wallet</h1><div class="panel login-panel"><h2>' +
     title +
-    '</h2><p>Use your email address.</p><form id="login-form">' +
+    "</h2><p>" +
+    (cloud.usingOwnBackend()
+      ? "Signing into your own project: <strong>" +
+        esc(cloud.backendHost()) +
+        "</strong>. This is a separate project login. Use credentials you created there. Your Zoro login remains separate."
+      : "Use your email address.") +
+    '</p><form id="login-form">' +
     field(
       "Email address",
       "email",
@@ -1647,7 +1726,11 @@ function loginScreen(registering = false) {
     (registering ? "Create account" : "Sign in") +
     '</button></form><button id="auth-mode" class="secondary" type="button">' +
     (registering ? "Back to sign in" : "Create an account") +
-    '</button><button class="secondary" type="button" data-action="preview">Back to sample wallet</button></div></div>';
+    "</button>" +
+    (cloud.usingOwnBackend()
+      ? '<button class="secondary" type="button" data-action="default-backend">Return to Zoro cloud</button>'
+      : "") +
+    '<button class="secondary" type="button" data-action="preview">Back to sample wallet</button></div></div>';
   $("#auth-mode").onclick = () => loginScreen(!registering);
   $("#login-form").onsubmit = async (e) => {
     e.preventDefault();
@@ -1680,9 +1763,22 @@ function loginScreen(registering = false) {
     }
   };
 }
+async function finishAuthentication() {
+  if (!cloud.usingOwnBackend()) {
+    const backend = await cloud.savedBackend();
+    if (backend) {
+      person = await cloud.activateBackend(backend);
+      state = null;
+      onlineWallet = false;
+      if (person) return openAuthenticatedWallet();
+      return loginScreen();
+    }
+  } else await cloud.rememberBackend();
+  return refresh(true);
+}
 async function openAuthenticatedWallet() {
   const factor = await cloud.secondFactor();
-  if (!factor) return refresh(true);
+  if (!factor) return finishAuthentication();
   $("#content").innerHTML =
     '<div class="login-wrap"><h1>Your private wallet</h1><div class="panel login-panel">' +
     (factor.secret
@@ -1706,7 +1802,7 @@ async function openAuthenticatedWallet() {
     submit.disabled = true;
     try {
       await cloud.verifyFactor(factor.id, new FormData(form).get("code"));
-      await refresh(true);
+      await finishAuthentication();
     } catch (error) {
       $("#mfa-error").textContent = error.message;
     } finally {

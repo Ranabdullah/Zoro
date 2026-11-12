@@ -4,6 +4,7 @@ node_modules/
 dist/config.js
 dist/cloud.js
 dist/reports.js
+dist/setup.sql
 dist/fonts/
 .openai/
 *.zip

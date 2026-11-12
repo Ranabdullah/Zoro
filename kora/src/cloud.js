@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-const cfg = window.KORA_CONFIG || {};
+import { backendConfig } from "../dist/backend-config.js";
+const cfg = window.ZORO_CONFIG || window.KORA_CONFIG || {};
 export const configured = Boolean(cfg.url && cfg.key);
-const client = configured
+const rootClient = configured
   ? createClient(cfg.url, cfg.key, {
       auth: {
         flowType: "pkce",
@@ -11,12 +12,79 @@ const client = configured
       },
     })
   : null;
-let user = null;
+let client = rootClient,
+  user = null,
+  rootUser = null,
+  pendingBackend = null;
+export const usingOwnBackend = () => client !== rootClient;
+export const backendHost = () =>
+  pendingBackend?.url || client?.supabaseUrl || cfg.url;
+export async function savedBackend() {
+  const { data, error } = await rootClient
+    .from("zoro_backend_links")
+    .select("project_url,publishable_key")
+    .eq("user_id", rootUser.id)
+    .maybeSingle();
+  if (error)
+    throw Error(
+      "Could not load your backend choice. Check the connection and backend-links migration.",
+    );
+  return data ? backendConfig(data.project_url, data.publishable_key) : null;
+}
+export async function activateBackend(config, remember = false) {
+  const checked = backendConfig(config.url, config.key);
+  if (checked.url === cfg.url)
+    throw Error("This is already the default Zoro project.");
+  client = createClient(checked.url, checked.key, {
+    auth: {
+      flowType: "pkce",
+      detectSessionInUrl: false,
+      persistSession: true,
+      storage: sessionStorage,
+    },
+  });
+  pendingBackend = remember ? checked : null;
+  const { data, error } = await client.auth.getSession();
+  if (error) throw Error("Could not open this project's sign-in session.");
+  user = data.session?.user || null;
+  return user;
+}
+export async function rememberBackend() {
+  if (!pendingBackend) return;
+  // Confirm schema and authenticated owner access before remembering this choice.
+  const allowed = await client.rpc("kora_allowed");
+  if (allowed.error || allowed.data !== true)
+    throw Error(
+      "Install the Zoro setup SQL and complete email verification and MFA in your own project first.",
+    );
+  const { error } = await rootClient.rpc("zoro_save_backend_link", {
+    project_url: pendingBackend.url,
+    publishable_key: pendingBackend.key,
+  });
+  if (error)
+    throw Error(
+      "Could not remember this backend. Sign back into Zoro and retry. No wallet data was moved.",
+    );
+  pendingBackend = null;
+}
+export async function useDefaultBackend() {
+  const { error } = await rootClient.rpc("zoro_clear_backend_link");
+  if (error)
+    throw Error(
+      "Could not change the backend choice. Sign into Zoro again and retry.",
+    );
+  if (usingOwnBackend()) await client.auth.signOut({ scope: "local" });
+  client = rootClient;
+  user = rootUser;
+  pendingBackend = null;
+  return user;
+}
 export async function session() {
   if (!client) return null;
   const { data, error } = await client.auth.getSession();
   if (error) throw error;
   user = data.session?.user || null;
+  rootUser = user;
   return user;
 }
 export async function register(email, password) {
@@ -47,11 +115,16 @@ export async function login(email, password) {
   if (error)
     throw Error("Unable to sign in. Check your details and try again.");
   user = data.user;
+  if (!usingOwnBackend()) rootUser = user;
   return user;
 }
 export async function logout() {
   const { error } = await client.auth.signOut({ scope: "local" });
   if (error) throw error;
+  if (usingOwnBackend()) await rootClient.auth.signOut({ scope: "local" });
+  client = rootClient;
+  rootUser = null;
+  pendingBackend = null;
   user = null;
 }
 export async function signedInSessions() {
@@ -200,6 +273,17 @@ export async function deleteOwnAccount() {
       "Could not delete this account. Contact support. Some receipt files may already have been removed.",
     );
   await client.auth.signOut({ scope: "local" });
+  if (usingOwnBackend()) {
+    const cleared = await rootClient.rpc("zoro_clear_backend_link");
+    if (cleared.error)
+      throw Error(
+        "Your project wallet account was deleted, but its Zoro link could not be cleared. Sign into Zoro and use Return to Zoro cloud.",
+      );
+    await rootClient.auth.signOut({ scope: "local" });
+  }
+  client = rootClient;
+  rootUser = null;
+  pendingBackend = null;
   user = null;
 }
 export async function receiptUrl(name) {

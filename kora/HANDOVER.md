@@ -1,119 +1,42 @@
-# Kora setup and handover
+# Zoro handover
 
-## The agreed setup
+## Daily use
 
-You maintain the source in your GitHub repository. Cloudflare serves the app. A single Supabase project handles email and password sign-in, private records and receipt photos. He opens the same HTTPS link on his phone or PC and uses the same email and password. He does **not** need a Supabase developer account to use Kora.
+Open the app link and explore the fictional sample wallet. Choose Create an account, confirm your email and set up an authenticator. A real wallet starts empty and connects automatically to the managed cloud. Public confirmation email delivery requires the app owner to configure a verified SMTP sender.
 
-Start with hosting and Supabase in your accounts if you prefer. A later transfer to accounts he owns is an administrative task; changing his email and password sign-in is not a backend transfer. This version has no user-facing backend settings, and no automatic project/data migration.
+Add each account once with its currency and current balance. Record expenses against the account used and attach receipt photos. Use Money in for salary and other income sources. Sign into the same account on PC and phone; records refresh on returning to the page, within 30 seconds, or through Settings -> Refresh.
 
-## 1. Put the source on GitHub
+Tutorials are optional, accessible from the empty-wallet prompt and Settings -> Help. Reports offers Excel/PDF snapshots filtered by dates, account or expenses with receipts. DATA-GUIDE.md explains full backup/restore and deletion. Keep downloaded backups private: they are unencrypted.
 
-Create a private repository and add the contents of the `kora` folder, including its `.gitignore`. If you upload the entire parent workspace instead, the project will be under `kora/` and Cloudflare's root directory must be `kora`.
+## Optional user-owned Supabase
 
-Do not upload `node_modules`, `.openai`, `.env` files, actual receipts, exports, user emails or personal test records. Generated `dist/config.js`, `dist/cloud.js` and `dist/fonts` are ignored; the build creates them. Keep `package-lock.json` committed.
+1. Under Settings -> Cloud connection settings, expand Use a Supabase project I own. Ordinary users can simply keep using the managed backend.
+2. Create a dedicated, empty Supabase project. Protect the owner account with MFA; keep its database password private.
+3. Download Zoro-Backend-Setup.sql from the app and run it once in the project's SQL Editor. It combines schema, access-hardening, session-security, public-registration, delete-account and backend-links migrations. Use a new project, not a populated database.
+4. Enable email registration, Confirm email, TOTP and minimum 12-character passwords. Configure custom SMTP directly in Supabase. Set the app's exact HTTPS origin as Site URL and its trailing-slash URL as an allowed redirect.
+5. Download a full Excel backup before switching. Enter only the project URL and sb_publishable_ key in the app. Never enter database passwords, service-role/secret keys or SMTP credentials.
+6. Continue to the destination project's separate sign-in. Register there if needed, confirm email and complete MFA. Only then is the project choice remembered against the central Zoro ID.
+7. Restore the full backup in the destination wallet. Records stay in the old project until explicitly removed. Verify the new copy before deletion.
+8. Another device signs into Zoro first, which selects the remembered project, then authenticates separately to that project. Return to Zoro cloud clears the remembered choice without deleting the destination records.
 
-## 2. Create the backend once
+There is no one-tap creation of Supabase accounts, billing or projects. Only hosted Supabase projects with this schema are supported; arbitrary backends need adapters. Public project URL/key are connection settings, not privileged secrets.
 
-1. Create a new Supabase project in your account. Choose a suitable region and a strong database password; retain it in your password manager.
-2. In SQL Editor, run `supabase/schema.sql` **once on a new project**. It creates the private vault, invitation allowlist, controlled save function, and private receipt bucket.
-3. Apply the authentication migrations listed below to enable public registration.
-4. In Supabase API settings, obtain the project URL (`https://PROJECT.supabase.co`) and **publishable** key (`sb_publishable_...`). These two values configure the browser. They are not privileged secrets. The build refuses service-role/secret keys.
-5. Never put the database password, Supabase service-role/secret key, or SMTP password in the source, browser configuration, GitHub or a chat.
+Deleting a wallet account in a user-owned project deletes that project's sign-in and wallet, and disconnects it. The central Zoro identity and any previous managed-cloud records remain. Return to managed Zoro cloud to delete those separately.
 
-The database requires a confirmed email, authenticator verification, and a current session. Signed-in users can access their own vault and receipt folder.
+## Deployment
 
-## 3. Enable verified email and password sign-in
+Private repository: https://github.com/Ranabdullah/kora-personal-wallet
 
-Run `supabase/access-hardening.sql`, `supabase/session-security.sql`, then `supabase/public-registration.sql` after the base schema. The final migration removes the invitation check. Keep TOTP enabled.
+Cloudflare Git builds: main branch, root kora, command npm ci && npm run build, output dist, Node.js 22+. Public build variables: SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY. Privileged credentials must stay out of source and chat. Root .github contains CI and Publish Zoro. Generated config, bundles, setup.sql, local test files and environment files are ignored.
 
-1. In Supabase Authentication, enable the Email provider, email signups, and **Confirm email**. Set the minimum password length to at least 12.
-2. Configure [custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) in Supabase using a verified sender. The built-in mailer only sends to project team members. Enter mail credentials directly in Supabase.
-3. Set the final HTTPS app origin as the Site URL and allow the exact app callback URL ending in a slash. For local development, separately allow http://127.0.0.1:4173/.
-4. Open the public demo and choose Create an account. Confirm the email and set up an authenticator before entering real data.
+Existing managed project: puakjcsnyhibxgdhurwm. Internal kora_* names preserve existing records. backend-links.sql was installed on 12 November 2026. New projects use the app's complete setup SQL. Update Supabase Site URL/allowed redirects when changing the public address. Existing per-tab sessions do not transfer across origins; sign in again at the new address.
 
-Kora uses the Supabase SDK with PKCE and stores its session in the current tab. Opening a confirmation link elsewhere may require returning to the app and signing in manually. Keep email confirmation enabled. The app has no self-service password reset screen yet.
+## Privacy and limits
 
-On the first sign-in, set up the authenticator before entering real wallet data. Keep the authenticator backed up securely. Each new browser session needs the password and authenticator code. This does not bind a session to a physical device.
+Database and private Storage policies require confirmed email, MFA and an owner session. Project admins can read project data: this is access-controlled storage, not end-to-end encryption. Users needing separation from the developer should own their backend.
 
-### Using a Supabase project he owns
+Infrastructure receives network connections and may process IP addresses. There are no analytics, ads or remote fonts. Exchange requests contain currency codes only. Browser auth tokens use per-tab sessionStorage; sessions are not bound to physical devices.
 
-He can create a Supabase account and a dedicated Kora project in his own organization. Apply the base schema and the authentication migrations, and point a dedicated deployment at that project's publishable key and URL. He then registers an app login in that project. His wallet and receipt folder use the Supabase Auth user ID, so the same login opens the same data on phone and PC. Project ownership and Kora sign-in are separate accounts. Switching to another project later requires moving the data and setting up sign-in there.
+Use nicknames and optional last four digits. Never add full card numbers, CVVs, bank PINs, passwords or credentials. Card and receipt images are JPEG-reencoded without original file metadata. The vault JSON limit is 2 MB; card designs count toward it. Receipt images are separate and capped at 2 MB each. Excel import accepts up to 25 MB. Provider retention/backups may outlast deletion from active app storage.
 
-## 4. Host with Cloudflare Pages when ready
-
-Nothing has been published for you. When you decide to deploy:
-
-1. Connect Cloudflare Pages to your private GitHub repository.
-2. Select no framework preset. Use root directory `kora` only if that folder is inside the repository; otherwise leave the root blank.
-3. Build command: `npm run build`. Output directory: `dist`. Use Node.js 22 or newer.
-4. Add build environment variables:
-   - `SUPABASE_URL`: your project URL.
-   - `SUPABASE_PUBLISHABLE_KEY`: its `sb_publishable_...` key.
-5. Deploy, then set the exact HTTPS origin in Supabase's Auth URL Configuration as described above. Rebuild after changing the two frontend environment variables.
-6. Verify `_headers` is applied, including CSP, no-store and anti-framing headers. If using another host, explicitly reproduce those headers; GitHub Pages does not apply this Cloudflare `_headers` file.
-
-Do not connect untrusted pull-request previews to the production backend. A preview uses a separate test project or no backend. Keep deployment changes reviewed, since the deployed frontend is trusted with the signed-in user's session.
-
-Reference: [Cloudflare Pages build configuration](https://developers.cloudflare.com/pages/configuration/build-configuration/).
-
-## 5. Verify before real use
-
-- Open on PC, sign in with a confirmed email address, add an account with €100 and record a €12.34 expense. The balance must be €87.66.
-- Sign in with the same account on the phone. Check the balance and receipt photo. Updates refresh when the tab becomes visible or within 30 seconds; Settings also has Refresh.
-- Add a second account using NGN/KES/GHS/etc. Its expense must affect only that account. Check the original amount, euro estimate and source rate date.
-- Sign in with a separate verified test identity. It must start empty and must not access the first user's vault or receipt paths, even via direct API requests.
-- Test with no login and a password-only login. Database writes and receipt reads/uploads must be denied. Inspect this directly in a dedicated staging project; UI hiding is not enough.
-- Open two devices, edit at the same time, and check that a stale save produces a conflict instead of silently replacing newer records. The form retains its inputs and allows a reviewed retry.
-- Upload a harmless test receipt. Confirm the bucket is private and the public storage URL cannot retrieve it. Photos are re-encoded to remove original image metadata; receipt text itself can still contain sensitive details.
-- Disconnect the internet and try saving. It must show a failure, not a success. Restore the connection and retry.
-- Sign out and ensure the account data disappears. Check mobile layout and the phone camera/file picker on the actual phone.
-- Review Supabase Security Advisor, auth rate limiting and backup settings. Confirm a restore process before depending on the app for your only financial records.
-
-These live checks have not been run because no project or account credentials were provided.
-
-## One-click updates after the first setup
-
-The repository includes **Actions → Publish Kora → Run workflow**. This runs tests, builds the configured app, then uploads it to Cloudflare Pages. It runs only from `main`; it does not publish pull requests or unconfigured sample mode.
-
-Configure the following once in the GitHub repository's `production` environment:
-
-| Setting                    | Store as                                                        |
-| -------------------------- | --------------------------------------------------------------- |
-| `SUPABASE_URL`             | Variable                                                        |
-| `SUPABASE_PUBLISHABLE_KEY` | Variable (public key, not privileged)                           |
-| `CLOUDFLARE_ACCOUNT_ID`    | Variable                                                        |
-| `CF_PAGES_PROJECT`         | Variable (existing Pages project name)                          |
-| `CLOUDFLARE_API_TOKEN`     | Secret (restricted to Pages deployment in the intended account) |
-
-Use either this manual workflow or Cloudflare's automatic Git builds as your primary publishing route. The first setup still needs provider sign-in, an approved Supabase project, its database schema, and verified email delivery. There is no honest one-click way to skip the account owner approving those connections.
-
-Keep the parent repository structure when uploading: `.github/` at the top, app code under `kora/`. The workflows use `kora` as their working directory.
-
-## Wallet controls
-
-Tap a stacked card or the matching account row to open its details. The view shows only that account's activity and attached receipts. **Edit card** changes its name, provider, account type, optional last four digits, colour and pattern. It leaves the currency and starting balance unchanged. Every appearance change is saved with the same private records when online. Last four digits remain hidden until explicitly revealed inside the account view.
-
-## Privacy boundaries, plainly stated
-
-- Supabase's publishable key is intentionally readable in the browser; its security depends on access policies. Privileged keys must never be there. [Supabase key guidance](https://supabase.com/docs/guides/getting-started/api-keys).
-- This is access-controlled storage, **not end-to-end encryption**. Supabase project owners/admins can access records. If he must be private from you, he should own the backend, and stronger end-to-end encryption would be a separate feature.
-- Hosting, authentication and rate services necessarily receive network connections and may process IP addresses. No web app can guarantee zero IP exposure to its infrastructure. This app has no analytics, third-party fonts or ads.
-- Exchange requests contain currency codes only, not balances, receipts or account names. The browser fetches the latest available [Frankfurter reference rates](https://frankfurter.dev/); the service sees the network request. Figures are estimates, not bank/payment offers. No API key is required for that feed.
-- Session tokens live in sessionStorage, accessible to trusted app JavaScript. CSP and local dependencies reduce exposure, but cannot make malicious deployed code or a compromised device safe. This version does not use a server-side HttpOnly-cookie session architecture.
-- Only nicknames, provider labels and optional last four digits are needed. Never add full card numbers, CVVs, PINs, online-banking passwords or account credentials to notes or photos.
-- The records download is plaintext and excludes online receipt photo binaries. Keep it private; use a proper Supabase database/storage backup for a complete backup. An export/import migration tool is not included.
-- The vault has a 2 MB JSON record limit; receipt images are separately capped at 2 MB each after resizing. It is a small personal app, not an unlimited accounting system.
-
-## His daily instructions
-
-1. Open your Kora link and choose **Create an account**. Confirm your email, then sign in.
-2. Add each account once: a name, provider, currency and current balance. Ireland is EUR; your other accounts keep their own currencies.
-3. After shopping, choose **Add expense**, enter the shop and amount, and select the account used. A photo or note is optional.
-4. Use **Accounts → Add money received** for income. Recording an entry does not move actual money.
-5. Open the same link and sign in with the same email and password on your other device.
-
-Only give him the app link and these daily instructions. Developer accounts and backend settings stay out of his everyday flow.
-
-## Session settings
-
-Apply `supabase/session-security.sql` after the invitation and authenticator migration. Settings shows verified browser sessions and lets the owner sign out other browsers. The database checks that a session still exists before it serves wallet or receipt data. A browser that is open and refreshing can show a notice when it detects another verified sign-in.
+Online saving/sync is not an independent backup. Download full Excel backups regularly, especially before import, migration or deletion. Managed database backup retention depends on the Supabase plan; do not claim a guaranteed scheduled backup without configuring and testing it. Keep a verified backup before using this as the sole record of finances.

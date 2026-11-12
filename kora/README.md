@@ -1,47 +1,13 @@
-# Kora
+# Zoro
 
-A personal money app for life in Ireland and accounts back home. Local, unpublished first version.
+A personal finance app for Ireland and accounts back home. The product is Zoro; the source directory and existing database names retain kora for compatibility.
 
-## Try it
+Run locally with Node.js 22+: npm ci, npm run build, npm start. Open http://127.0.0.1:4173/. Without backend configuration, fictional preview records stay in memory and reset on reload.
 
-Requires Node.js 22 or newer. Open a terminal in this folder:
+Included: responsive wallet cards, optional tutorials, empty real wallets, verified email/password and TOTP, manual accounts/income/expenses/receipts/debts, exchange estimates, card colours/patterns/uploads, Excel/PDF reports and receipt filters, full Excel backups/imports, deletion controls and session review.
 
-```sh
-npm ci
-npm run build
-npm start
-```
+Normal sign-in automatically connects to the managed backend. Settings also offers guided connection to a user-owned Supabase project. Its separate sign-in is required; passwords are never copied. The project choice is stored against the Zoro ID after authenticated verification. A full backup/restore explicitly copies records to the new wallet.
 
-Open http://127.0.0.1:4173 on this PC. Without backend configuration, this is a clearly labelled sample preview, saved in this browser only. Do not enter real financial information into the sample preview. It is not an authenticated account and does not sync to a phone.
+Private GitHub and Cloudflare automatic builds are configured. See HANDOVER.md for setup, DATA-GUIDE.md for backups and RELEASE-STATUS.md for limitations. Public signup still needs a verified SMTP sender. This app does not move money, link banks or provide a continuous live Excel connection.
 
-## Included
-
-- Responsive desktop/mobile layout with a stacked wallet and consistent card proportions.
-- Cards open a private account-details dialog with that account's activity and receipt links.
-- Edit card names/providers, choose a custom colour or one of eight presets, and choose four backgrounds. Text contrast adjusts automatically.
-- Euro default, African currencies, any bank/provider name, mobile money and cash.
-- Manual expenses and income; balances calculated in integer minor units.
-- Latest available reference-rate euro estimates with rate dates, not bank conversion quotes.
-- Receipt photos with optional notes; image resizing and JPEG re-encoding before storage.
-- Debt reminders, activity search, hide-balances control and records download.
-- Supabase verified email and password registration and sign-in, owner-only data access, per-user database policies, private receipt storage and conflicting-write detection.
-
-There is no bank linking, payment processing, OCR, SMS login or automatic statement reconciliation. Accounts are manual ledgers. Debt settlement is a reminder status; record any payment separately. The online export contains receipt metadata, not the photo files.
-
-## Go online later
-
-Read **HANDOVER.md**. Hosting and Supabase must be configured before login/sync work. Nothing has been deployed or pushed to GitHub. The temporary Sites registration from the initial approach was never deployed and is not needed; `.openai/` is ignored and excluded from the handover archive.
-
-## Files
-
-- `dist/`: maintained frontend source and static hosting directory.
-- `src/cloud.js`: Supabase adapter; bundled at build time into `dist/cloud.js`.
-- `scripts/build.mjs`: builds client SDK, copies local fonts, generates public backend configuration.
-- `supabase/schema.sql`: one-time schema for a new Supabase project.
-- `supabase/public-registration.sql`: enables registration without invitations.
-- `tests/`: balance, currency, card-contrast and PostgreSQL access-policy tests.
-- `../.github/workflows/publish.yml`: a manual Publish workflow for repeat deployments after one-time setup.
-
-## Verification
-
-`npm test` passes 17 checks, including eight SQL-policy scenarios executed in local PostgreSQL (PGlite) with auth/storage fixtures. These check anonymous denial, user isolation, invitation requirements, private receipt paths, and stale-write rejection. Card text contrast is tested across 4,096 colours. Build and local HTTP response were checked. Browser visual/interaction QA remains blocked by a saved browser permission; no screenshot verification is claimed. Supabase authentication, the actual storage service and cross-device behavior still require live integration testing. This is not a security-audited production release.
+Tests cover calculations, report round trips, receipt filters, card contrast, safe backend configuration and PostgreSQL access policies. Local fixtures and live sample UI checks do not replace real account, mail delivery or physical-device testing.

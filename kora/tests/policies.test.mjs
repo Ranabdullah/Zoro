@@ -367,6 +367,71 @@ test("private vault and receipt policies enforce owner access and save revisions
       },
     );
     await t.test(
+      "backend choices are owner-only, require MFA and reject privileged keys",
+      async () => {
+        await db.exec(
+          await readFile(
+            new URL("../supabase/backend-links.sql", import.meta.url),
+            "utf8",
+          ),
+        );
+        const setLink = (url, key) =>
+          db.query("select public.zoro_save_backend_link($1,$2)", [url, key]);
+        const url = "https://abcdefghijklmnopqrst.supabase.co",
+          key = "sb_publishable_abcdefghijklmno";
+        await acting("anon", null, () =>
+          assert.rejects(() => setLink(url, key), /permission denied/),
+        );
+        await acting(
+          "authenticated",
+          alice,
+          () =>
+            assert.rejects(
+              () => setLink(url, key),
+              /Verified sign-in required/,
+            ),
+          "aal1",
+        );
+        await acting("authenticated", alice, async () => {
+          await assert.rejects(
+            () => setLink(url, "sb_secret_forbidden"),
+            /check constraint/,
+          );
+          await assert.rejects(
+            () => setLink("https://attacker.example", key),
+            /check constraint/,
+          );
+          await setLink(url, key);
+          assert.equal(
+            (await db.query("select * from public.zoro_backend_links")).rows
+              .length,
+            1,
+          );
+        });
+        await acting("authenticated", bob, async () => {
+          assert.equal(
+            (await db.query("select * from public.zoro_backend_links")).rows
+              .length,
+            0,
+          );
+          await db.query("select public.zoro_clear_backend_link()");
+        });
+        await acting("authenticated", alice, async () => {
+          assert.equal(
+            (await db.query("select * from public.zoro_backend_links")).rows
+              .length,
+            1,
+          );
+          await db.query("select public.zoro_clear_backend_link()");
+          assert.equal(
+            (await db.query("select * from public.zoro_backend_links")).rows
+              .length,
+            0,
+          );
+        });
+      },
+    );
+    await t.test(
       "account removal requires MFA, clears only the owner and requires receipt cleanup",
       async () => {
         await db.exec(

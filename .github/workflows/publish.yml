@@ -1,10 +1,10 @@
-name: Publish Kora
+name: Publish Zoro
 on:
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: kora-production
+  group: zoro-production
   cancel-in-progress: false
 jobs:
   publish:

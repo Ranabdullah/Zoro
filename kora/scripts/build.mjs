@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { writeFile, mkdir, copyFile } from "node:fs/promises";
+import { writeFile, mkdir, copyFile, readFile } from "node:fs/promises";
 const url = process.env.SUPABASE_URL || "",
   key = process.env.SUPABASE_PUBLISHABLE_KEY || "";
 if (key && !key.startsWith("sb_publishable_"))
@@ -16,7 +16,23 @@ if (process.env.CF_PAGES === "1" && !url)
   );
 await writeFile(
   "dist/config.js",
-  `window.KORA_CONFIG=${JSON.stringify({ url, key })};\n`,
+  `window.ZORO_CONFIG=${JSON.stringify({ url, key })};\n`,
+);
+const migrations = [
+  "schema",
+  "access-hardening",
+  "session-security",
+  "public-registration",
+  "delete-account",
+  "backend-links",
+];
+await writeFile(
+  "dist/setup.sql",
+  (
+    await Promise.all(
+      migrations.map((name) => readFile(`supabase/${name}.sql`, "utf8")),
+    )
+  ).join("\n\n"),
 );
 await build({
   entryPoints: ["src/cloud.js"],
@@ -27,7 +43,10 @@ await build({
 });
 await build({
   entryPoints: ["src/reports.js"],
-  bundle: true, format: "esm", outfile: "dist/reports.js", minify: true,
+  bundle: true,
+  format: "esm",
+  outfile: "dist/reports.js",
+  minify: true,
 });
 await mkdir("dist/fonts", { recursive: true });
 for (const font of ["dm-sans", "manrope"])
