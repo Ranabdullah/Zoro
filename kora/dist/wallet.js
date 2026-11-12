@@ -11,6 +11,14 @@ export const cardColours = [
   "#d8d4ec",
 ];
 export const cardPatterns = ["orbit", "weave", "contour", "solid"];
+// Only locally re-encoded JPEG data can be rendered, never remote URLs or SVG.
+export function safeCardImage(value) {
+  return typeof value === "string" &&
+    value.length <= 140000 &&
+    /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(value)
+    ? value
+    : "";
+}
 export function safeColour(value) {
   return /^#[\da-f]{6}$/i.test(value || "")
     ? value.toLowerCase()

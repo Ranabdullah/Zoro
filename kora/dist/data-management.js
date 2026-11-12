@@ -1,4 +1,5 @@
 import { currencies, emptyState } from "./ledger.js";
+import { safeCardImage } from "./wallet.js";
 
 export function validateBackup(input) {
   if (!input || typeof input !== "object")
@@ -27,6 +28,8 @@ export function validateBackup(input) {
     /^\d{4}-\d{2}-\d{2}$/.test(value) &&
     !Number.isNaN(Date.parse(value));
   const accounts = input.accounts.map((a) => {
+    if (a.cardImage && !safeCardImage(a.cardImage))
+      throw Error("Invalid card image.");
     if (
       !string(a.name, 100) ||
       !string(a.provider, 100) ||
@@ -45,6 +48,7 @@ export function validateBackup(input) {
       last4: /^\d{4}$/.test(a.last4) ? a.last4 : "",
       colour: a.colour || a.color,
       pattern: a.pattern,
+      cardImage: safeCardImage(a.cardImage),
     };
   });
   const accountIds = new Set(accounts.map((a) => a.id));

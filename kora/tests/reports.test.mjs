@@ -73,6 +73,10 @@ test("full Excel backups round trip and invalid or duplicate relationships are r
         ...state,
         name: "Personal",
         currency: "NGN",
+        accounts: state.accounts.map((a) => ({
+          ...a,
+          cardImage: "data:image/jpeg;base64,/9j/",
+        })),
         receipts: [
           {
             id: "r",
@@ -87,6 +91,7 @@ test("full Excel backups round trip and invalid or duplicate relationships are r
   );
   assert.equal(restored.name, "Personal");
   assert.equal(restored.currency, "NGN");
+  assert.equal(restored.accounts[0].cardImage, "data:image/jpeg;base64,/9j/");
   assert.equal(restored.receipts[0].image, "data:image/jpeg;base64,/9j/");
   assert.equal(
     validateBackup(await readBackup(await backupExcel(state))).entries[0].shop,

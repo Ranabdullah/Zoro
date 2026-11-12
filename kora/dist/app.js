@@ -1,7 +1,9 @@
+import { incomeSources, currencyLabel } from "./money-labels.js";
 import { reportRows } from "./report-data.js";
 import { validateBackup, removeData } from "./data-management.js";
 import * as cloud from "./cloud.js";
 import {
+  safeCardImage,
   cardAppearance,
   cardColours,
   cardPatterns,
@@ -206,12 +208,14 @@ function card(
   { interactive = true, index = 0, amount = balance(state, a.id) } = {},
 ) {
   const look = cardAppearance(a);
+  const image = safeCardImage(a.cardImage);
+  if (image) { look.ink = "#ffffff"; look.art = "#000000"; }
   const tag = interactive ? "button" : "div";
-  return `<${tag} class="bank-card wallet-card pattern-${look.pattern}" style="--card-bg:${look.colour};--card-ink:${look.ink};--card-art:${look.art};--card-index:${index}" ${interactive ? `data-account="${esc(a.id)}" aria-label="Open ${esc(a.name)} account details"` : ""}>
-    <span class="card-art" aria-hidden="true"></span>
+  return `<${tag} class="bank-card wallet-card ${image ? "has-card-image" : ""} pattern-${look.pattern}" style="--card-bg:${look.colour};--card-ink:${look.ink};--card-art:${look.art};--card-index:${index}" ${interactive ? `data-account="${esc(a.id)}" aria-label="Open ${esc(a.name)} account details"` : ""}>
+    ${image ? `<img class="card-custom-image" src="${image}" alt=""><span class="card-image-shade" aria-hidden="true"></span>` : '<span class="card-art" aria-hidden="true"></span>'}
     <span class="card-top"><b>${esc(a.name)}</b><span class="currency-badge">${esc(a.currency)}</span></span>
     <span class="card-provider">${esc(a.provider)}<span>${esc(accountLocation(a))}</span></span>
-    <span class="card-bottom"><span><span class="card-label">Available balance</span><strong>${cash(amount, a.currency)}</strong></span><span class="card-kind">${esc(a.kind)}</span></span>
+    <span class="card-bottom"><span><span class="card-label">Available · ${esc(currencyLabel(a.currency))}</span><strong>${cash(amount, a.currency)}</strong></span><span class="card-kind">${esc(a.kind)}</span></span>
     <span class="card-tail"><span>${a.currency !== "EUR" ? `<span class="money">${esc(estimated(amount, a.currency))}</span>` : "YOUR EVERYDAY MONEY"}</span><span aria-hidden="true">◔</span></span>
   </${tag}>`;
 }
@@ -244,7 +248,7 @@ function accountDetails(id, animate = true) {
   );
   $("#account-dialog-title").textContent = a.name;
   $("#account-detail").innerHTML =
-    `<div class="account-detail-top"><div class="account-hero ${animate ? "card-pop" : ""}">${card(a, { interactive: false })}</div><div class="account-facts"><div class="private-label">◈ ${onlineWallet ? "Only in your signed-in account" : "Local sample preview"}</div><dl><div><dt>Provider</dt><dd>${esc(a.provider)}</dd></div><div><dt>Location</dt><dd>${esc(accountLocation(a))}</dd></div><div><dt>Account type</dt><dd>${esc(a.kind)}</dd></div><div><dt>Card ending</dt><dd id="card-ending">${a.last4 ? '<button class="link" data-reveal-ending>Reveal last 4 digits</button>' : "Not added"}</dd></div></dl></div></div><div class="account-actions"><button class="primary" data-account-expense="${esc(id)}">＋ Add expense</button><button class="secondary" data-account-income="${esc(id)}">＋ Money in</button><button class="secondary" data-edit-account="${esc(id)}">✎ Edit card</button><button class="secondary" data-remove-account="${esc(id)}">Remove account</button></div><div class="account-stat-grid"><div><small>Starting balance</small><b>${cash(a.opening, a.currency)}</b></div><div><small>Total spent</small><b>${cash(spent, a.currency)}</b></div><div><small>Total received</small><b>${cash(received, a.currency)}</b></div></div><div class="section-heading"><h2>Activity on this account</h2><span class="pill">${entries.length} entries</span></div><div class="account-history">${txRows(entries)}</div>${receipts.length ? `<div class="section-heading"><h2>Receipts for this account</h2></div><div class="account-receipts">${receipts.map((r) => `<button class="secondary" data-view-receipt="${esc(r.id)}">▤ ${esc(r.shop)} · ${esc(r.date)}</button>`).join("")}</div>` : ""}<p class="detail-note">Manually tracked. Recording a purchase changes this balance; it does not move money or connect to your bank.</p>`;
+    `<div class="account-detail-top"><div class="account-hero ${animate ? "card-pop" : ""}">${card(a, { interactive: false })}</div><div class="account-facts"><div class="private-label">◈ ${onlineWallet ? "Only in your signed-in account" : "Local sample preview"}</div><dl><div><dt>Provider</dt><dd>${esc(a.provider)}</dd></div><div><dt>Location</dt><dd>${esc(accountLocation(a))}</dd></div><div><dt>Currency</dt><dd>${esc(currencyLabel(a.currency))}</dd></div><div><dt>Account type</dt><dd>${esc(a.kind)}</dd></div><div><dt>Card ending</dt><dd id="card-ending">${a.last4 ? '<button class="link" data-reveal-ending>Reveal last 4 digits</button>' : "Not added"}</dd></div></dl></div></div><div class="account-actions"><button class="primary" data-account-expense="${esc(id)}">＋ Add expense</button><button class="secondary" data-account-income="${esc(id)}">＋ Money in</button><button class="secondary" data-edit-account="${esc(id)}">✎ Edit card</button><button class="secondary" data-remove-account="${esc(id)}">Remove account</button></div><div class="account-stat-grid"><div><small>Starting balance</small><b>${cash(a.opening, a.currency)}</b></div><div><small>Total spent</small><b>${cash(spent, a.currency)}</b></div><div><small>Total received</small><b>${cash(received, a.currency)}</b></div></div><div class="section-heading"><h2>Activity on this account</h2><span class="pill">${entries.length} entries</span></div><div class="account-history">${txRows(entries)}</div>${receipts.length ? `<div class="section-heading"><h2>Receipts for this account</h2></div><div class="account-receipts">${receipts.map((r) => `<button class="secondary" data-view-receipt="${esc(r.id)}">▤ ${esc(r.shop)} · ${esc(r.date)}</button>`).join("")}</div>` : ""}<p class="detail-note">Manually tracked. Recording a purchase changes this balance; it does not move money or connect to your bank.</p>`;
   if (!$("#account-dialog").open) $("#account-dialog").showModal();
 }
 function txRows(entries) {
@@ -616,14 +620,23 @@ function options(list, selected) {
     )
     .join("");
 }
+function currencyOptions(selected = "EUR") {
+  return currencies
+    .map(
+      (c) =>
+        `<option value="${c}" ${c === selected ? "selected" : ""}>${esc(currencyLabel(c))}</option>`,
+    )
+    .join("");
+}
 function accountSelect() {
-  return `<label for="f-account">Paid from / received into</label><select id="f-account" name="account">${state.accounts.map((a) => `<option value="${esc(a.id)}">${esc(a.name)} · ${esc(a.currency)}</option>`).join("")}</select>`;
+  return `<label for="f-account">Paid from / received into</label><select id="f-account" name="account">${state.accounts.map((a) => `<option value="${esc(a.id)}">${esc(a.name)} · ${esc(currencyLabel(a.currency))}</option>`).join("")}</select>`;
 }
 const photoField = () =>
   '<label for="f-photo">Receipt photo (optional)</label><input id="f-photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"><small>Take a photo on your phone, or choose an image. Maximum 10 MB.</small>';
+let draftCardImage = "";
 function appearanceFields(account) {
   const look = cardAppearance(account || {});
-  return `<fieldset class="appearance-fields"><legend>Make it yours</legend><div id="card-preview" class="account-hero"></div><label for="f-colour">Card colour</label><div class="colour-controls"><input type="color" name="colour" id="f-colour" value="${look.colour}"><div class="colour-swatches">${cardColours.map((c) => `<button type="button" data-colour="${c}" class="colour-swatch" style="background:${c}" aria-label="Use colour ${c}"></button>`).join("")}</div></div><label for="f-pattern">Background design</label><select id="f-pattern" name="pattern">${cardPatterns.map((p) => `<option value="${p}" ${look.pattern === p ? "selected" : ""}>${{ orbit: "Soft circles", weave: "Woven lines", contour: "Contour lines", solid: "Plain colour" }[p]}</option>`).join("")}</select><small>Text colour adjusts automatically for readability.</small></fieldset>`;
+  return `<fieldset class="appearance-fields"><legend>Make it yours</legend><div id="card-preview" class="account-hero"></div><label for="f-colour">Card colour</label><div class="colour-controls"><input type="color" name="colour" id="f-colour" value="${look.colour}"><div class="colour-swatches">${cardColours.map((c) => `<button type="button" data-colour="${c}" class="colour-swatch" style="background:${c}" aria-label="Use colour ${c}"></button>`).join("")}</div></div><label for="f-pattern">Background design</label><select id="f-pattern" name="pattern">${cardPatterns.map((p) => `<option value="${p}" ${look.pattern === p ? "selected" : ""}>${{ orbit: "Soft circles", weave: "Woven lines", contour: "Contour lines", solid: "Plain colour" }[p]}</option>`).join("")}</select><label for="f-card-image">Your own card background (optional)</label><input id="f-card-image" type="file" accept="image/jpeg,image/png,image/webp"><small>Choose a JPG, PNG or WebP up to 10 MB. Saved privately with your account. Images are cropped to fit.</small><button type="button" class="secondary" data-action="remove-card-image">Remove custom image</button><small>Text stays readable over your image.</small></fieldset>`;
 }
 function updateCardPreview() {
   const preview = $("#card-preview");
@@ -638,6 +651,7 @@ function updateCardPreview() {
     currency: $("#f-currency").value,
     colour: $("#f-colour").value,
     pattern: $("#f-pattern").value,
+    cardImage: draftCardImage,
   };
   let amount = existing ? balance(state, existing.id) : 0;
   if (!existing) {
@@ -650,6 +664,9 @@ function updateCardPreview() {
 function openForm(type, account) {
   formType = type;
   editingAccount = type === "edit-account" ? account : null;
+  draftCardImage = safeCardImage(
+    state.accounts.find((a) => a.id === editingAccount)?.cardImage,
+  );
   $("#form").reset();
   $("#form-error").textContent = "";
   let title = "",
@@ -661,11 +678,18 @@ function openForm(type, account) {
     }
     title = type === "expense" ? "Add an expense" : "Add money received";
     fields =
+      (type === "income"
+        ? `<label for="f-income-source">Income source</label><select id="f-income-source" name="incomeSource">${options(incomeSources, "Job / salary")}</select>`
+        : "") +
       field(
-        type === "expense" ? "Shop or place" : "From whom?",
+        type === "expense"
+          ? "Shop or place"
+          : "Employer, person or description (optional)",
         "shop",
         "text",
-        'required maxlength="100" placeholder="e.g. Lidl"',
+        type === "expense"
+          ? 'required maxlength="100" placeholder="e.g. Lidl"'
+          : 'maxlength="100" placeholder="e.g. Monthly salary or employer name"',
       ) +
       field(
         "Amount · in the selected account’s currency",
@@ -674,7 +698,7 @@ function openForm(type, account) {
         'required min="0.01" step="any" inputmode="decimal" placeholder="0.00"',
       ) +
       accountSelect() +
-      `<details class="optional"><summary>Add a receipt or more details</summary><label for="f-category">Category</label><select id="f-category" name="category">${options(type === "income" ? ["Income"] : ["Groceries", "Food & drink", "Transport", "Shopping", "Bills", "Other"], "Other")}</select>` +
+      `<details class="optional"><summary>Add a receipt or more details</summary>${type === "expense" ? `<label for="f-category">Category</label><select id="f-category" name="category">${options(["Groceries", "Food & drink", "Transport", "Shopping", "Bills", "Other"], "Other")}</select>` : ""}` +
       field("Date", "date", "date", `required value="${today()}"`) +
       photoField() +
       field("Note (optional)", "note", "text", 'maxlength="500"') +
@@ -724,7 +748,7 @@ function openForm(type, account) {
         .map((p) => `<option value="${p}">`)
         .join("") +
       "</datalist>" +
-      `<label for="f-currency">Currency</label><select id="f-currency" name="currency">${options(currencies, "EUR")}</select>` +
+      `<label for="f-currency">Currency</label><select id="f-currency" name="currency">${currencyOptions("EUR")}</select>` +
       field(
         "Current balance",
         "opening",
@@ -770,7 +794,7 @@ function openForm(type, account) {
       "</select>" +
       field("Amount", "amount", "number", 'required min="0.01" step="any"') +
       '<label for="f-currency">Currency</label><select id="f-currency" name="currency">' +
-      options(currencies, "EUR") +
+      currencyOptions("EUR") +
       "</select>" +
       field("Due date", "date", "date", `required value="${today()}"`) +
       field("Note (optional)", "note", "text", 'maxlength="500"');
@@ -844,17 +868,21 @@ $("#form").addEventListener("submit", async (event) => {
       id = crypto.randomUUID();
     let next = structuredClone(state);
     for (const key of ["name", "provider", "shop"])
-      if (typeof v[key] === "string" && !v[key].trim())
+      if (
+        typeof v[key] === "string" &&
+        !v[key].trim() &&
+        !(formType === "income" && key === "shop")
+      )
         throw Error("Please fill in the name or shop.");
     if (formType === "expense" || formType === "income") {
       const a = state.accounts.find((a) => a.id === v.account);
       next = addEntry(next, {
         id,
-        shop: v.shop.trim(),
+        shop: v.shop.trim() || v.incomeSource,
         amount: minor(v.amount, a.currency),
         account: v.account,
         kind: formType,
-        category: v.category,
+        category: formType === "income" ? v.incomeSource : v.category,
         date: v.date,
         note: v.note.trim(),
       });
@@ -870,6 +898,7 @@ $("#form").addEventListener("submit", async (event) => {
         last4: v.last4,
         colour: cardAppearance({ colour: v.colour }).colour,
         pattern: cardPatterns.includes(v.pattern) ? v.pattern : "orbit",
+        cardImage: draftCardImage,
       });
     }
     if (formType === "edit-account") {
@@ -883,6 +912,7 @@ $("#form").addEventListener("submit", async (event) => {
               last4: v.last4,
               colour: cardAppearance({ colour: v.colour }).colour,
               pattern: cardPatterns.includes(v.pattern) ? v.pattern : "orbit",
+              cardImage: draftCardImage,
             }
           : a,
       );
@@ -1406,6 +1436,11 @@ document.addEventListener("click", async (event) => {
       return;
     }
     const action = b.dataset.action;
+    if (action === "remove-card-image") {
+      draftCardImage = "";
+      $("#f-card-image").value = "";
+      updateCardPreview();
+    }
     if (action === "data-management") showDataManagement();
     if (action === "backup-wallet") {
       busy = true;
@@ -1516,6 +1551,53 @@ $("#privacy").onclick = () => {
     hidden ? "Show balances" : "Hide balances",
   );
 };
+document.addEventListener("change", async (event) => {
+  if (event.target.id !== "f-card-image") return;
+  const input = event.target,
+    file = input.files[0];
+  if (!file || busy) return;
+  busy = true;
+  $("#form .submit").disabled = true;
+  $("#form-error").textContent = "";
+  let bitmap;
+  try {
+    if (
+      file.size > 10 * 1024 * 1024 ||
+      !["image/jpeg", "image/png", "image/webp"].includes(file.type)
+    )
+      throw Error("Choose a JPG, PNG or WebP smaller than 10 MB.");
+    bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    canvas.width = 640;
+    canvas.height = 404;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#244f43";
+    ctx.fillRect(0, 0, 640, 404);
+    const scale = Math.max(640 / bitmap.width, 404 / bitmap.height);
+    ctx.drawImage(
+      bitmap,
+      (640 - bitmap.width * scale) / 2,
+      (404 - bitmap.height * scale) / 2,
+      bitmap.width * scale,
+      bitmap.height * scale,
+    );
+    let encoded = canvas.toDataURL("image/jpeg", 0.75);
+    if (!safeCardImage(encoded)) encoded = canvas.toDataURL("image/jpeg", 0.5);
+    if (!safeCardImage(encoded))
+      throw Error(
+        "This image is too detailed. Choose a simpler or smaller image.",
+      );
+    draftCardImage = encoded;
+    updateCardPreview();
+  } catch (error) {
+    $("#form-error").textContent = error.message;
+    input.value = "";
+  } finally {
+    bitmap?.close();
+    busy = false;
+    $("#form .submit").disabled = false;
+  }
+});
 document.addEventListener("input", (e) => {
   if (
     e.target.closest("#form") &&

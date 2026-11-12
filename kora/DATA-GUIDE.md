@@ -1,5 +1,9 @@
 # Zoro reports and data controls
 
+**Money in** offers income sources such as Job / salary, Freelance, Business, Pension, Gift and Refund. Choose a source and optionally add an employer or description; the source is saved as the transaction category and appears in Excel/PDF reports.
+
+**Accounts → open a card → Edit card** lets you choose a colour, pattern or your own JPG/PNG/WebP background (up to 10 MB). Uploaded designs are cropped and re-encoded to a small JPEG without the original file metadata. They are stored inside your private wallet and included in full backups. Remove custom image returns the card to its colour and pattern.
+
 Open **Reports** to download an Excel workbook or PDF for the selected date range. Reports include date-first transactions, currency totals and spending charts. Currencies stay separate; receipt counts and notes are included, but receipt photos are not embedded in reports.
 
 Open **Settings → Backup, import or remove data** for these options:

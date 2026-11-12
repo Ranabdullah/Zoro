@@ -136,6 +136,13 @@ nav button .nav-label {
 .bank-card.wallet-card:before {
   display: none;
 }
+.wallet-card.has-card-image { color: #fff; --card-ink: #fff; }
+.wallet-card .card-custom-image, .wallet-card .card-image-shade {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  z-index: -1; pointer-events: none; border-radius: inherit;
+}
+.wallet-card .card-custom-image { object-fit: cover; }
+.wallet-card .card-image-shade { background: rgba(0, 0, 0, 0.72); }
 .wallet-card .card-art {
   position: absolute;
   inset: 0;
