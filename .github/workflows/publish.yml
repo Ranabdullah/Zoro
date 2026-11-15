@@ -13,10 +13,13 @@ jobs:
     environment: production
     defaults:
       run:
-        working-directory: kora
+        working-directory: zoro
     env:
       SUPABASE_URL: ${{ vars.SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      ENABLE_GOOGLE_AUTH: ${{ vars.ENABLE_GOOGLE_AUTH }}
+      ENABLE_PHONE_AUTH: ${{ vars.ENABLE_PHONE_AUTH }}
+      MICROSOFT_CLIENT_ID: ${{ vars.MICROSOFT_CLIENT_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       CF_PAGES_PROJECT: ${{ vars.CF_PAGES_PROJECT }}
       CF_PAGES: '1'
@@ -26,7 +29,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: kora/package-lock.json
+          cache-dependency-path: zoro/package-lock.json
       - run: npm ci
       - run: npm test
       - run: npm run build

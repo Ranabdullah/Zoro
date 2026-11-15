@@ -1,0 +1,29 @@
+{
+  "name": "zoro-personal-finance",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "setup": "node scripts/setup.mjs",
+    "setup:check": "node scripts/setup.mjs --check",
+    "start": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@azure/msal-browser": "5.29.1",
+    "@fontsource-variable/dm-sans": "5.3.0",
+    "@fontsource-variable/manrope": "5.3.0",
+    "@supabase/supabase-js": "2.105.0",
+    "exceljs": "4.4.0",
+    "pdf-lib": "1.17.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.16",
+    "esbuild": "0.25.12",
+    "happy-dom": "21.0.4"
+  },
+  "overrides": {
+    "uuid": "11.1.1"
+  }
+}

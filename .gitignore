@@ -8,3 +8,11 @@ node_modules/
 .wrangler/
 .vercel/
 *.log
+backup-output/
+*.pem
+*.key
+*decrypted*.json
+Zoro-Recovery-Codes*.txt
+Zoro-Full-Wallet-Backup*.xlsx
+Zoro-Financial-Report*.xlsx
+Zoro-Financial-Report*.pdf

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#214e43" />
+    <title>Zoro · Your personal money space</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="wallet.css" />
+  </head>
+  <body>
+    <aside>
+      <a class="brand" href="#"
+        ><img src="zoro-logo.svg" alt="" width="40" height="40"> zoro<span class="brand-dot">.</span></a
+      >
+      <div class="space-label">YOUR PERSONAL SPACE</div>
+      <nav></nav>
+      <div id="preview-auth" hidden>
+        <button class="primary" data-action="register">Create an account</button>
+        <button class="secondary" data-action="login">Sign in</button>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="small-art">◒</div>
+        <h3>Life here.<br />Roots everywhere.</h3>
+        <p>From Ireland to back home.</p>
+        <button class="text-button" data-action="settings">
+          Make it yours ↗
+        </button>
+      </div>
+      <button class="profile" data-action="settings">
+        <span class="avatar">Z</span
+        ><span>My personal space<small>Make yourself at home</small></span
+        ><span>⌄</span>
+      </button>
+    </aside>
+    <main>
+      <header>
+        <div class="breadcrumb">
+          My space <span>/</span> <b id="crumb">Home</b>
+        </div>
+        <div class="header-right">
+          <span class="demo">● Preview · sample data</span
+          ><button class="icon-btn" id="privacy" aria-label="Hide balances">
+            ◉</button
+          ><button
+            class="icon-btn"
+            data-action="settings"
+            aria-label="Settings"
+          >
+            ⚙
+          </button>
+        </div>
+      </header>
+      <section id="preview-banner" class="panel" hidden>
+        <div><h2>Explore the sample wallet</h2><p>These example accounts and transactions are just for the demo. Your own wallet starts empty.</p></div>
+        <div class="preview-cta">
+          <button class="primary" data-action="register">Create an account</button>
+          <button class="secondary" data-action="login">Sign in</button>
+          <button class="secondary" data-action="start-tour">Take the tour</button>
+        </div>
+        <div id="preview-tutorial">
+          <div class="preview-tabs" role="tablist" aria-label="Explore Zoro">
+            <button type="button" role="tab" id="tour-home" data-page="Home" aria-controls="content">Overview</button>
+            <button type="button" role="tab" id="tour-accounts" data-page="Accounts" aria-controls="content">Accounts</button>
+            <button type="button" role="tab" id="tour-activity" data-page="Activity" aria-controls="content">Activity</button>
+            <button type="button" role="tab" id="tour-receipts" data-page="Receipts" aria-controls="content">Receipts</button>
+            <button type="button" role="tab" id="tour-debts" data-page="Debts" aria-controls="content">Debts</button>
+            <button type="button" role="tab" id="tour-reports" data-page="Reports" aria-controls="content">Reports</button>
+            <button type="button" role="tab" id="tour-settings" data-page="Settings" aria-controls="content">Settings</button>
+          </div>
+          <p id="preview-tip" aria-live="polite"></p>
+        </div>
+        <template id="wallet-guide">
+          <ol class="tutorial-steps">
+            <li><strong>Explore the dashboard.</strong> See what you have, what came in and what you spent this month. Foreign currency totals are estimated in euros.</li>
+            <li><strong>Try an account.</strong> Open a sample card to see its balance and activity. In Accounts, you can add a bank account, card or cash balance in its own currency.</li>
+            <li><strong>Record spending or income.</strong> Choose Add expense or Money in, select an account and enter an amount. Watch its balance update, then review the entry in Activity.</li>
+            <li><strong>Save a receipt.</strong> Open Receipts to attach a photo and a note. Use a sample image while exploring.</li>
+            <li><strong>Track debts.</strong> Open Debts to record money you owe or money someone owes you and mark it settled when paid.</li>
+            <li><strong>Start your own wallet.</strong> If you like Zoro, choose Create an account, confirm your email and set up an authenticator. Your wallet starts empty. You can replay this guide in Settings → Help.</li>
+          </ol>
+        </template>
+      </section>
+      <div id="content" tabindex="-1"></div>
+      <footer>
+        Made for your life, wherever it takes you.<span
+          >Manual tracking · No bank connection</span
+        >
+      </footer>
+    </main>
+    <dialog id="wallet-tour" aria-labelledby="tour-title" aria-describedby="tour-description">
+      <div class="tour-progress" id="tour-progress"></div>
+      <h2 id="tour-title"></h2>
+      <p id="tour-description"></p>
+      <dl id="tour-controls"></dl>
+      <div class="tour-actions">
+        <button type="button" class="secondary" data-action="skip-tour">Skip tour</button>
+        <button type="button" class="secondary" data-action="previous-tour">Back</button>
+        <button type="button" class="primary" data-action="next-tour" autofocus>Next</button>
+      </div>
+    </dialog>
+    <dialog id="settings-dialog" aria-labelledby="settings-dialog-title">
+      <form method="dialog" class="modal-head">
+        <h2 id="settings-dialog-title"></h2>
+        <button class="icon-btn" aria-label="Close">×</button>
+      </form>
+      <div id="settings-dialog-content"></div>
+    </dialog>
+    <dialog id="modal">
+      <form id="form">
+        <div class="modal-head">
+          <h2 id="modal-title"></h2>
+          <button type="button" class="icon-btn" id="close" aria-label="Close">
+            ×
+          </button>
+        </div>
+        <div id="fields"></div>
+        <p id="form-error" role="alert"></p>
+        <button class="primary submit" type="submit">Save</button>
+      </form>
+    </dialog>
+    <dialog id="account-dialog" aria-labelledby="account-dialog-title">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">YOUR PERSONAL WALLET</div>
+          <h2 id="account-dialog-title">Account details</h2>
+        </div>
+        <button
+          type="button"
+          class="icon-btn"
+          data-close-account
+          aria-label="Close account details"
+        >
+          ×
+        </button>
+      </div>
+      <div id="account-detail"></div>
+    </dialog>
+    <div id="toast" role="status"></div>
+    <script src="config.js"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

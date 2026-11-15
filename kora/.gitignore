@@ -1,11 +1,2 @@
+dist/
 node_modules/
-.env*
-!.env.example
-dist/config.js
-dist/cloud.js
-dist/reports.js
-dist/setup.sql
-dist/fonts/
-.openai/
-*.zip
-tmp/

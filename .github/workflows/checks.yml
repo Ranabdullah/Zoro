@@ -1,4 +1,4 @@
-name: Check Kora
+name: Check Zoro
 on:
   push:
     branches: [main]
@@ -10,14 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: kora
+        working-directory: zoro
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: kora/package-lock.json
+          cache-dependency-path: zoro/package-lock.json
       - run: npm ci
+      - run: npm run setup:check
       - run: npm test
       - run: npm run build

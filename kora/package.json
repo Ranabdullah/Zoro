@@ -1,25 +1,7 @@
 {
-  "name": "zoro-personal-finance",
-  "version": "0.2.0",
+  "name": "zoro-legacy-host-build",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": {
-    "build": "node scripts/build.mjs",
-    "start": "node scripts/serve.mjs",
-    "test": "node --test tests/*.test.mjs"
-  },
-  "dependencies": {
-    "@fontsource-variable/dm-sans": "5.3.0",
-    "@fontsource-variable/manrope": "5.3.0",
-    "@supabase/supabase-js": "2.105.0",
-    "exceljs": "4.4.0",
-    "pdf-lib": "1.17.1"
-  },
-  "devDependencies": {
-    "@electric-sql/pglite": "0.5.16",
-    "esbuild": "0.25.12"
-  },
-  "overrides": {
-    "uuid": "11.1.1"
-  }
+  "scripts": { "build": "node build.mjs" }
 }

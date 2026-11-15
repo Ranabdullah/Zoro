@@ -1,0 +1,38 @@
+name: Encrypted Zoro backup
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 3 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: zoro-owner-backup
+  cancel-in-progress: false
+jobs:
+  backup:
+    if: github.ref == 'refs/heads/main' && vars.ZORO_BACKUPS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: backups
+    defaults:
+      run:
+        working-directory: zoro
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: zoro/package-lock.json
+      - run: npm ci
+      - name: Encrypt wallet and receipt snapshot
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BACKUP_PUBLIC_KEY: ${{ vars.BACKUP_PUBLIC_KEY }}
+        run: node scripts/backup.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Zoro-encrypted-${{ github.run_id }}
+          path: zoro/backup-output/Zoro-encrypted-backup.json
+          retention-days: 14
+          if-no-files-found: error
